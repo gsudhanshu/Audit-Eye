@@ -7,6 +7,7 @@ from tkcalendar import DateEntry
 import ttk
 import os
 from shutil import copyfile
+import numpy as np
 
 def frame(root, side):
     w=Frame(root)
@@ -30,6 +31,10 @@ class Application(Frame):
             self.gldata = None
             self.tbdata = None
             self.cadata = None
+            self.min_entry_dt = ''
+            self.max_entry_dt = ''
+            self.min_eff_dt = ''
+            self.max_eff_dt = ''
         def getProjectFName(self):
             return self.fname
         def getProjectName(self):
@@ -50,13 +55,24 @@ class Application(Frame):
             return self.caInputFile
         def setGLInputFile(self, glInputF):
             self.glInputFile = glInputF
-            self.gldata = pd.read_excel(open(glInputF,'rb'))
+            self.gldata = pd.read_excel(glInputF)
         def setTBInputFile(self, tbInputF):
             self.tbInputFile = tbInputF
-            self.tbdata = pd.read_excel(open(tbInputF,'rb'))
+            self.tbdata = pd.read_excel(tbInputF)
         def setCAInputFile(self, caInputF):
             self.caInputFile = caInputF
-            self.cadata = pd.read_excel(open(caInputF,'rb'))
+            self.cadata = pd.read_excel(caInputF)
+        def getGLData(self):
+            return self.gldata
+        def getTBData(self):
+            return self.tbdata
+        def getCAData(self):
+            return self.cadata
+        def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
+            self.min_entry_dt = min_entry_dt
+            self.max_entry_dt = max_entry_dt
+            self.min_eff_dt = min_eff_dt
+            self.max_eff_dt = max_eff_dt
 
     def init_dashboard(self):
         self.l1.destroy()
@@ -106,6 +122,8 @@ class Application(Frame):
         f4.pack(expand=YES, fill=BOTH)
 
     def __init__(self):
+        pd.set_option('display.max_colwidth', -1)
+        pd.set_option('display.max_rows', 500)
         Frame.__init__(self)
         self.project=None
         self.status = StringVar()
@@ -129,6 +147,90 @@ class Application(Frame):
         self.l1.image = img
         lbl_status = Entry(self.w, textvariable=self.status, justify=LEFT, relief=RAISED)
         lbl_status.pack(side=BOTTOM, fill=BOTH, expand=YES, padx=5)
+
+    def input_parameters_window(self):
+        if self.project == None:
+            self.status.set("First Create Project or Load existing Project!")
+            return
+        elif self.project.getGLInputFile() == '' or self.project.getTBInputFile() == '' or self.project.getCAInputFile() == '':
+            self.status.set("First Upload Data Files. Select Tools -> Manage Data")
+            return        
+        ipw = Toplevel(self)
+        ipw.wm_title("Validate Input Parameters")
+        #read gl and get max and min effective and entry dates
+        glData = self.project.getGLData()
+        min_entry_dt = glData['Posting Date'].min()
+        max_entry_dt = glData['Posting Date'].max()
+        min_eff_dt = glData['Posting Date'].min()
+        max_eff_dt = glData['Posting Date'].max()
+        #f1: left pane
+        f1 = frame(ipw, LEFT)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_start_dt = Label(f1, text="Start Date:", relief=FLAT, anchor="w")
+        lbl_start_dt.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_end_dt = Label(f1, text="End Date:", relief=FLAT, anchor="w")
+        lbl_end_dt.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Center pane
+        f2 = frame(ipw, LEFT)
+        Label(f2, text="Entry Date", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_start_entry = Label(f2, text=min_entry_dt, relief=SUNKEN)
+        lbl_start_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_end_entry = Label(f2, text=max_entry_dt, relief=SUNKEN)
+        lbl_end_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f2, text="Cancel", command=ipw.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Right pane
+        f3 = frame(ipw, LEFT)
+        Label(f3, text="Effective Date", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_start_effective = Label(f3, text=min_eff_dt, relief=SUNKEN)
+        lbl_start_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_end_effective = Label(f3, text=max_eff_dt, relief=SUNKEN)
+        lbl_end_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f3, text="Ok and Next", command=lambda: self.ipt_param_JEvalidate_window(self, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
+
+    def ipt_param_JEvalidate_window(self, master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
+        #save entry and effective dates in project object
+        master.project.setEntryEffDates(min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt)
+        ipw.destroy()
+        #open next window
+        ipjw = Toplevel(master)
+        ipjw.wm_title("Validate Input Parameters")
+        glData = master.project.getGLData()
+        #A. highlight more than 5 JE line items
+        glData_subset = glData[['Entry No_', 'Amount']]
+        countli_byJE = glData_subset.pivot_table(index=['Entry No_'], aggfunc='count')
+        countli_byJE = countli_byJE.rename(columns = {'Amount':'Count'})
+        countli_byJE = countli_byJE.sort_values(by=['Count'], ascending=False)
+        f1 = frame(ipjw, TOP)
+        Label(f1, text="JE's with count of line items to check if multiple transactions within same JE").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        jeli_text = Text(f1, height=10, width=80)
+        jeli_text.insert(END, countli_byJE) #display dataframe in text
+        jeli_scroll = Scrollbar(f1, command= jeli_text.yview)
+        jeli_text.configure(yscrollcommand=jeli_scroll.set)
+        jeli_text.pack(side=LEFT)
+        jeli_scroll.pack(side=RIGHT, fill=Y)
+        f1.pack(expand=YES, fill=BOTH)
+        f2 = frame(ipjw, TOP)
+        #B. Unbalanced JEs
+        amount_by_JE = glData_subset.pivot_table(index=['Entry No_'])
+        amount_by_JE = amount_by_JE.replace(0, np.nan)
+        unbalancedJE = amount_by_JE.dropna(how='any', axis=1) 
+        unbalancedJE = amount_by_JE.replace(np.nan, 0) #to be on safe side
+        Label(f2, text="Unbalanced JE's").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        jelist_text = Text(f2, height=10, width=80)
+        jelist_text.insert(END, unbalancedJE) #display dataframe in text
+        jelist_scroll = Scrollbar(f2, command= jelist_text.yview)
+        jelist_text.configure(yscrollcommand=jelist_scroll.set)
+        jelist_text.pack(side=LEFT)
+        jelist_scroll.pack(side=RIGHT, fill=Y)
+        f2.pack(expand=YES, fill=BOTH)
+        f3 = frame(ipjw, TOP)
+        Button(f3, text="Cancel", command=ipjw.destroy).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Approve and Next", command=ipjw.destroy).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
 
     def input_data_window(self):
         if self.project == None:
@@ -181,10 +283,34 @@ class Application(Frame):
                         os.chdir("Data")
                 finally:
                     #copy all 3 files in data folder
-                    copyfile(master.glInputF.get(), ""+master.project.getProjectName()+"_gl")
-                    copyfile(master.tbInputF.get(), ""+master.project.getProjectName()+"_tb")
-                    copyfile(master.caInputF.get(), ""+master.project.getProjectName()+"_ca")
-                    master.status.set("Data files saved. Now Loading data...")
+                    cpflag = 0
+                    try:
+                        copyfile(master.glInputF.get(), ""+master.project.getProjectName()+"_gl")
+                        cpflag +=1
+                    except:
+                        #log error!
+                        master.status.set("Error in saving GL Input File")
+                    try:
+                        copyfile(master.tbInputF.get(), ""+master.project.getProjectName()+"_tb")
+                        cpflag +=1
+                    except:
+                        master.status.set("Error in saving TB Input File")
+                    try:
+                        copyfile(master.caInputF.get(), ""+master.project.getProjectName()+"_ca")
+                        cpflag +=1
+                    except:
+                        master.status.set("Error in saving CoA Input File")
+                    if cpflag == 0:
+                        master.status.set("Error in saving Data files. Try again!")
+                        cwd = os.getcwd()
+                        if cwd[-4:] == "Data":
+                            os.chdir("..")
+                        return
+                    else:
+                        master.status.set(str(cpflag)+" Data files saved. Now loading data...")
+                    cwd = os.getcwd()
+                    if cwd[-4:] == "Data":
+                        os.chdir("..")
                     #save information in project.p file
                     pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten
                     pf.write("ProjectName="+master.project.getProjectName()+"\n")
@@ -196,9 +322,6 @@ class Application(Frame):
                     pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
                     pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
                     pf.close()
-                    cwd = os.getcwd()
-                    if cwd[-4:] == "Data":
-                        os.chdir("..")
                     #Load data files from saved location
                     master.load_project_file(master.project.getProjectFName())
             parent.destroy()
@@ -211,19 +334,19 @@ class Application(Frame):
         f3 = frame(idw, LEFT)
         self.changeInputF = 0
         def browseGLinputF(master):
-            master.glInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*.*"))))
+            master.glInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
             if master.glInputF.get() == (): #in case of cancel or no selection
                 master.glInputF.set('')
                 return
             self.changeInputF += 1
         def browseTBinputF(master):
-            master.tbInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*.*"))))
+            master.tbInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
             if master.tbInputF.get() == (): #in case of cancel or no selection
                 master.tbInputF.set('')
                 return
             self.changeInputF += 1
         def browseCAinputF(master):
-            master.caInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*.*"))))
+            master.caInputF.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
             if master.caInputF.get() == (): #in case of cancel or no selection
                 master.caInputF.set('')
                 return
@@ -279,15 +402,16 @@ class Application(Frame):
             pf.write("Sector="+sector+"\n")
             pf.close()
             master.project = master.Project(project_name, fy_end, timing, creator, sector, os.path.abspath(project_name+".p"))
+            self.winfo_toplevel().title("DA Analyze: "+project_name)
             master.status.set("Project Created. Now select Tools -> Manage Data")
             parent.destroy()
-        Button(f2, text="Submit", command=lambda: onSubmit(cpw, self, ipt_project_name.get(), ipt_fy_end.get_date().strftime('%m/%d/%Y'), ipt_timing.get_date().strftime('%m/%d/%Y'), ipt_creator.get(), ipt_sector.get())).pack(side=TOP, padx=10, pady=10)
+        Button(f2, text="Submit", command=lambda: onSubmit(cpw, self, ipt_project_name.get(), ipt_fy_end.get_date().strftime('%d/%m/%Y'), ipt_timing.get_date().strftime('%d/%m/%Y'), ipt_creator.get(), ipt_sector.get())).pack(side=TOP, padx=10, pady=10)
         f2.pack(expand=YES, fill=BOTH)
         #grab_set to refrain any activity on main window
         cpw.grab_set()
 
     def load_project(self):
-        fname = askopenfilename(filetypes=(("Project Files", "*.p"),("All Files", "*.*")))
+        fname = askopenfilename(filetypes=(("Project Files", "*.p"),("All Files", "*")))
         if fname == () or fname == '': #in case of cancel or no selection
             return
         self.load_project_file(fname)
@@ -335,7 +459,8 @@ class Application(Frame):
                 return
             else:
                 #Display dashboard
-                self.init_dashboard()
+                #self.init_dashboard()
+                self.status.set("Loading Project...Done. Now select Tools -> Input Parameters")
 
     def makeFileMenu(self, mBar):
         CmdBtn = Menubutton(mBar, text='File', underline=0)
@@ -344,7 +469,7 @@ class Application(Frame):
         CmdBtn.menu.add_command(label="Create Project...", underline=0, command=self.create_project_window)
         #CmdBtn.menu.entryconfig(0, state=DISABLED)
         CmdBtn.menu.add_command(label='Load/Open Project...', underline=5, command=self.load_project)
-        CmdBtn.menu.add_command(label='Manage Projects', underline=0)#, command=manage_projects)
+        CmdBtn.menu.add_command(label='Manage Projects', underline=0, state=DISABLED)#, command=manage_projects)
         CmdBtn.menu.add('separator')
         CmdBtn.menu.add_command(label='Quit', underline=0, command=CmdBtn.quit)
         CmdBtn['menu'] = CmdBtn.menu
@@ -354,10 +479,10 @@ class Application(Frame):
         CmdBtn = Menubutton(mBar, text='Tools', underline=0)
         CmdBtn.pack(side=LEFT, padx="2m")
         CmdBtn.menu = Menu(CmdBtn)
-        CmdBtn.menu.add_command(label="Configure", underline=0)#, command=configure)
-        CmdBtn.menu.entryconfig(0, state=DISABLED)
+        CmdBtn.menu.add_command(label="Configure", underline=0, state=DISABLED)#, command=configure)
+        #CmdBtn.menu.entryconfig(0, state=DISABLED)
         CmdBtn.menu.add_command(label='Manage Data', underline=6, command=self.input_data_window)
-        CmdBtn.menu.add_command(label='Input Parameters', underline=0)#, command=input_parameters)
+        CmdBtn.menu.add_command(label='Input Parameters', underline=0, command=self.input_parameters_window)
         CmdBtn['menu'] = CmdBtn.menu
         return CmdBtn
 

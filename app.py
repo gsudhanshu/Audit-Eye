@@ -3,6 +3,7 @@ import pandas as pd
 from ScrolledText import ScrolledText 
 from PIL import ImageTk, Image
 from tkFileDialog import askopenfilename
+from tkFileDialog import asksaveasfilename
 from tkcalendar import DateEntry
 import ttk
 import os
@@ -313,7 +314,7 @@ class Application(Frame):
         iadw = Toplevel(master)
         iadw.wm_title("Validate Input Parameters: Account Definition")
         #read CoA
-        caData = self.project.getCAData()
+        caData = master.project.getCAData()
         #f1: Top pane
         f1 = frame(iadw, TOP)
         Label(f1, text="Review the order of all levels within the account hierarchy:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -343,14 +344,29 @@ class Application(Frame):
         f1.pack(expand=YES, fill=BOTH)
         #f2: Middle pane
         f2 = frame(iadw, TOP)
-        Button(f2, text="Manage Data to upload new COA", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
-        Button(f2, text="Export COA", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        def uploadNewCOA(master):
+            iadw.destroy()
+            master.input_data_window()
+        Button(f2, text="Manage Data to upload new COA", command=lambda: uploadNewCOA(master)).pack(side=RIGHT, padx=10, pady=10)        
+        def export_COA(master):
+            caData = master.project.getCAData()
+            savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+            caData.to_excel(savefile, index=False)
+        Button(f2, text="Export COA", command=lambda: export_COA(master)).pack(side=RIGHT, padx=10, pady=10)        
         f2.pack(expand=YES, fill=BOTH)
         #f3: Bottom pane
         f3 = frame(iadw, BOTTOM)
-        Button(f3, text="Ok and Next", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        def onOK(master, iadw):
+            master.project.saveAccDefvalidated()
+            master.ipt_upload_source_window(master, iadw)
+        Button(f3, text="Ok and Next", command=lambda: onOK(master, iadw)).pack(side=RIGHT, padx=10, pady=10)        
         Button(f3, text="Cancel", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
         f3.pack(expand=YES, fill=BOTH)
+
+    def ipt_upload_source_window(self, master, iadw):
+        iadw.destroy()
+        iusw = Toplevel(master)
+        iusw.wm_title("Validate Input Parameters: Source")
 
     def save_project_file(master):
         pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten

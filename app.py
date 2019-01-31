@@ -35,6 +35,11 @@ class Application(Frame):
             self.max_entry_dt = ''
             self.min_eff_dt = ''
             self.max_eff_dt = ''
+            self.jeField = ''
+            self.JEvalidated = ''
+            self.sys_man_entries = ''
+            self.sysField = ''
+            self.sysvalues = [] #take care while loading value from project file
         def getProjectFName(self):
             return self.fname
         def getProjectName(self):
@@ -68,11 +73,20 @@ class Application(Frame):
             return self.tbdata
         def getCAData(self):
             return self.cadata
-        def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
+        def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField):
             self.min_entry_dt = min_entry_dt
             self.max_entry_dt = max_entry_dt
             self.min_eff_dt = min_eff_dt
             self.max_eff_dt = max_eff_dt
+            self.jeField = jeField
+        def saveJEvalidated(self):
+            self.JEvalidated = 'True'
+        def getJEvalidated(self):
+            return self.JEvalidated
+        def saveSys_Manual_fields(self, sys_man_entries, sysField, sysvalues):
+            self.sys_man_entries = sys_man_entries
+            self.sysField = sysField
+            self.sysvalues = sysvalues
 
     def init_dashboard(self):
         self.l1.destroy()
@@ -156,13 +170,14 @@ class Application(Frame):
             self.status.set("First Upload Data Files. Select Tools -> Manage Data")
             return        
         ipw = Toplevel(self)
-        ipw.wm_title("Validate Input Parameters")
+        ipw.wm_title("Validate Input Parameters: Journal Entry Dates")
         #read gl and get max and min effective and entry dates
         glData = self.project.getGLData()
         min_entry_dt = glData['Posting Date'].min()
         max_entry_dt = glData['Posting Date'].max()
         min_eff_dt = glData['Posting Date'].min()
         max_eff_dt = glData['Posting Date'].max()
+        columns = tuple(glData)
         #f1: left pane
         f1 = frame(ipw, LEFT)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -171,6 +186,7 @@ class Application(Frame):
         lbl_end_dt = Label(f1, text="End Date:", relief=FLAT, anchor="w")
         lbl_end_dt.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1.pack(expand=YES, fill=BOTH)
         #f2: Center pane
         f2 = frame(ipw, LEFT)
@@ -178,6 +194,8 @@ class Application(Frame):
         lbl_start_entry = Label(f2, text=min_entry_dt, relief=SUNKEN)
         lbl_start_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_end_entry = Label(f2, text=max_entry_dt, relief=SUNKEN)
+        lbl_end_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        lbl_end_entry = Label(f2, text="JE No. Field", relief=FLAT)
         lbl_end_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="Cancel", command=ipw.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f2.pack(expand=YES, fill=BOTH)
@@ -188,20 +206,29 @@ class Application(Frame):
         lbl_start_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_end_effective = Label(f3, text=max_eff_dt, relief=SUNKEN)
         lbl_end_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f3, text="Ok and Next", command=lambda: self.ipt_param_JEvalidate_window(self, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        ipt_jeField = ttk.Combobox(f3, values=columns)
+        ipt_jeField.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        def onOK(master):
+            if ipt_jeField.get() == '':
+                master.status.set("Please select JE No. Field")
+                return
+            else:
+                master.status.set("")
+            master.ipt_param_JEvalidate_window(master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, ipt_jeField.get())
+        Button(f3, text="Ok and Next", command=lambda: onOK(self)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f3.pack(expand=YES, fill=BOTH)
 
-    def ipt_param_JEvalidate_window(self, master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
+    def ipt_param_JEvalidate_window(self, master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField):
         #save entry and effective dates in project object
-        master.project.setEntryEffDates(min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt)
+        master.project.setEntryEffDates(min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField)
         ipw.destroy()
         #open next window
         ipjw = Toplevel(master)
-        ipjw.wm_title("Validate Input Parameters")
+        ipjw.wm_title("Validate Input Parameters: Journal Entries")
         glData = master.project.getGLData()
         #A. highlight more than 5 JE line items
-        glData_subset = glData[['Entry No_', 'Amount']]
-        countli_byJE = glData_subset.pivot_table(index=['Entry No_'], aggfunc='count')
+        glData_subset = glData[[jeField, 'Amount']]
+        countli_byJE = glData_subset.pivot_table(index=[jeField], aggfunc='count')
         countli_byJE = countli_byJE.rename(columns = {'Amount':'Count'})
         countli_byJE = countli_byJE.sort_values(by=['Count'], ascending=False)
         f1 = frame(ipjw, TOP)
@@ -215,7 +242,7 @@ class Application(Frame):
         f1.pack(expand=YES, fill=BOTH)
         f2 = frame(ipjw, TOP)
         #B. Unbalanced JEs
-        amount_by_JE = glData_subset.pivot_table(index=['Entry No_'])
+        amount_by_JE = glData_subset.pivot_table(index=[jeField])
         amount_by_JE = amount_by_JE.replace(0, np.nan)
         unbalancedJE = amount_by_JE.dropna(how='any', axis=1) 
         unbalancedJE = amount_by_JE.replace(np.nan, 0) #to be on safe side
@@ -229,8 +256,119 @@ class Application(Frame):
         f2.pack(expand=YES, fill=BOTH)
         f3 = frame(ipjw, TOP)
         Button(f3, text="Cancel", command=ipjw.destroy).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f3, text="Approve and Next", command=ipjw.destroy).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
+        def onApprove(master, ipjw):
+            master.project.saveJEvalidated()
+            master.ipt_select_sysvalues_window(master, ipjw)
+        Button(f3, text="Approve and Next", command=lambda: onApprove(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         f3.pack(expand=YES, fill=BOTH)
+
+    def ipt_select_sysvalues_window(self, master, ipjw):
+        ipjw.destroy()
+        ssw = Toplevel(master)
+        ssw.wm_title("Validate Input Parameters: System / Manual entries")
+        #read gl and get column list
+        glData = self.project.getGLData()
+        columns = tuple(glData)
+        #f1: left pane
+        f1 = frame(ssw, LEFT)
+        Label(f1, text="Journal Entry Data file contains:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Select Field:", relief=FLAT, anchor="w").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Select System Value(s):", relief=FLAT, anchor="w").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
+        Button(f1, text="Cancel", command=ssw.destroy).pack(side=BOTTOM, padx=10, pady=10)        
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Center pane
+        f2 = frame(ssw, LEFT)
+        ipt_entries = ttk.Combobox(f2, values=("Only Manual Entries","Only System Entries","Both System and Manual Entries"))
+        ipt_entries.set("Only Manual Entries")
+        ipt_entries.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_sysField = ttk.Combobox(f2, values=columns)
+        ipt_sysValues = Listbox(f2,selectmode='multiple')
+        def sysFieldSelected(self):
+            if not ipt_sysField.get() == '':
+                #get unique values in column from glData
+                uniqueValues = glData[ipt_sysField.get()].unique().tolist()
+                for item in uniqueValues:
+                    ipt_sysValues.insert(END, item)
+                ssw.update()
+        ipt_sysField.bind("<<ComboboxSelected>>", sysFieldSelected)
+        ipt_sysField.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_sysValues.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        def onOK(master, ssw):
+            selected_values = [ipt_sysValues.get(i) for i in ipt_sysValues.curselection()]
+            master.project.saveSys_Manual_fields(ipt_entries.get(), ipt_sysField.get(), selected_values)
+            master.ipt_acc_def_window(master, ssw)
+        Button(f2, text="Ok and Next", command=lambda: onOK(master, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
+        f2.pack(expand=YES, fill=BOTH)
+
+    def ipt_acc_def_window(self, master, ssw):
+        ssw.destroy()
+        iadw = Toplevel(master)
+        iadw.wm_title("Validate Input Parameters: Account Definition")
+        #read CoA
+        caData = self.project.getCAData()
+        #f1: Top pane
+        f1 = frame(iadw, TOP)
+        Label(f1, text="Review the order of all levels within the account hierarchy:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        accTree = ttk.Treeview(f1)
+        caData_subset = caData[['Account Category', 'Account Class', 'Account Subclass', 'GL Account no.']]
+        df2 = pd.DataFrame({'Account Category': caData_subset['Account Category'].unique()})
+        df2['Account Class'] = [list(set(caData_subset['Account Class'].loc[caData_subset['Account Category'] == x['Account Category']])) for _, x in df2.iterrows()]
+        df3 = pd.DataFrame({'Account Class': caData_subset['Account Class'].unique()})
+        df3['Account Subclass'] = [list(set(caData_subset['Account Subclass'].loc[caData_subset['Account Class'] == x['Account Class']])) for _, x in df3.iterrows()]
+        df4 = pd.DataFrame({'Account Subclass': caData_subset['Account Subclass'].unique()})
+        df4['GL Account no.'] = [list(set(caData_subset['GL Account no.'].loc[caData_subset['Account Subclass'] == x['Account Subclass']])) for _, x in df4.iterrows()]
+        gi = 0
+        for item in caData_subset['Account Category'].unique().tolist():
+            accTree.insert('', 'end', item, text=item)
+            for ite in df2['Account Class'].loc[df2['Account Category'] == item]:
+                for x in ite:
+                    accTree.insert(item, 'end', x, text=x)
+                    for it in df3['Account Subclass'].loc[df3['Account Class'] == x]:
+                        for y in it:
+                            accTree.insert(x, 'end', y, text=y)
+                            for i in df4['GL Account no.'].loc[df4['Account Subclass'] == y]:
+                                for z in i:
+                                    gl_no = str(z)[:-3]
+                                    accTree.insert(y, 'end', gi, text=gl_no)
+                                    gi += 1
+        accTree.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Middle pane
+        f2 = frame(iadw, TOP)
+        Button(f2, text="Manage Data to upload new COA", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        Button(f2, text="Export COA", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Bottom pane
+        f3 = frame(iadw, BOTTOM)
+        Button(f3, text="Ok and Next", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        Button(f3, text="Cancel", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
+
+    def save_project_file(master):
+        pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten
+        pf.write("ProjectName="+master.project.getProjectName()+"\n")
+        pf.write("FY_end="+master.project.getFYend()+"\n")
+        pf.write("ProjectTiming="+master.project.getTiming()+"\n")
+        pf.write("ProjectCreator="+master.project.getCreator()+"\n")
+        pf.write("Sector="+master.project.getSector()+"\n")
+        cwd = os.getcwd()
+        if cwd[-4:] != "Data":
+            os.chdir("Data")
+        pf.write("GLinputFile="+os.path.abspath(""+master.project.getProjectName()+"_gl")+"\n")
+        pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
+        pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
+        cwd = os.getcwd()
+        if cwd[-4:] == "Data":
+            os.chdir("..")
+        pf.close()
 
     def input_data_window(self):
         if self.project == None:
@@ -312,16 +450,7 @@ class Application(Frame):
                     if cwd[-4:] == "Data":
                         os.chdir("..")
                     #save information in project.p file
-                    pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten
-                    pf.write("ProjectName="+master.project.getProjectName()+"\n")
-                    pf.write("FY_end="+master.project.getFYend()+"\n")
-                    pf.write("ProjectTiming="+master.project.getTiming()+"\n")
-                    pf.write("ProjectCreator="+master.project.getCreator()+"\n")
-                    pf.write("Sector="+master.project.getSector()+"\n")
-                    pf.write("GLinputFile="+os.path.abspath(""+master.project.getProjectName()+"_gl")+"\n")
-                    pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
-                    pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
-                    pf.close()
+                    master.save_project_file()
                     #Load data files from saved location
                     master.load_project_file(master.project.getProjectFName())
             parent.destroy()

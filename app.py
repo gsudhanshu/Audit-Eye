@@ -1,6 +1,5 @@
 from Tkinter import *
 import pandas as pd
-from ScrolledText import ScrolledText 
 from PIL import ImageTk, Image
 from tkFileDialog import askopenfilename
 from tkFileDialog import asksaveasfilename
@@ -41,6 +40,22 @@ class Application(Frame):
             self.sys_man_entries = ''
             self.sysField = ''
             self.sysvalues = [] #take care while loading value from project file
+            self.AccDefvalidated = ''
+            self.sourceInputF = ''
+            self.sourceInput = None
+            self.preparerInputF = ''
+            self.preparerInput = None
+            self.BUInputF = ''
+            self.BUInput = None
+            self.SG01FileName = ''
+            self.SG01File = None
+            self.SG02FileName = ''
+            self.SG02File = None
+            self.SG03FileName = ''
+            self.SG03File = None
+            self.SG04FileName = ''
+            self.SG04File = None
+            self.ip_saved = ''
         def getProjectFName(self):
             return self.fname
         def getProjectName(self):
@@ -80,14 +95,217 @@ class Application(Frame):
             self.min_eff_dt = min_eff_dt
             self.max_eff_dt = max_eff_dt
             self.jeField = jeField
+        def setJEField(self, jeField):
+            self.jeField = jeField
+        def getJEField(self):
+            return self.jeField
         def saveJEvalidated(self):
             self.JEvalidated = 'True'
+        def setJEvalidated(self, JEvalidated):
+            self.JEvalidated = JEvalidated
         def getJEvalidated(self):
             return self.JEvalidated
         def saveSys_Manual_fields(self, sys_man_entries, sysField, sysvalues):
             self.sys_man_entries = sys_man_entries
             self.sysField = sysField
             self.sysvalues = sysvalues
+        def getsys_man_entries(self):
+            return self.sys_man_entries
+        def getsysField(self):
+            return self.sysField
+        def getsysValues(self):
+            return self.sysvalues
+        def setAccDefvalidated(self, AccDefvalidated):
+            self.AccDefvalidated = AccDefvalidated
+        def getAccDefvalidated(self):
+            return self.AccDefvalidated
+        def setSourceInputF(self, sourceFileName):
+            if sourceFileName != '':
+                self.sourceInput = pd.read_excel(sourceFileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_src", engine='xlsxwriter')
+                self.sourceInput.to_excel(writer)
+                writer.save()
+                self.sourceInputF = os.path.abspath(""+self.getProjectName()+"_src")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.sourceInputF = ''
+                self.sourceInput = None
+        def getSourceInputF(self):
+            return self.sourceInputF
+        def getSourceInput(self):
+            return self.sourceInput
+        def setPreparerInputF(self, preparerFileName):
+            #self.preparerInputF = preparerFileName
+            if preparerFileName != '':
+                self.preparerInput = pd.read_excel(preparerFileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_prep", engine='xlsxwriter')
+                self.preparerInput.to_excel(writer)
+                writer.save()
+                self.preparerInputF = os.path.abspath(""+self.getProjectName()+"_prep")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.preparerInput = None
+                self.preparerInputF = ''
+        def getPreparerInputF(self):
+            return self.preparerInputF
+        def getPreparerInput(self):
+            return self.preparerInput
+        def setBUInputF(self, BUFileName):
+            #self.BUInputF = BUFileName
+            if BUFileName != '':
+                self.BUInput = pd.read_excel(BUFileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_BU", engine='xlsxwriter')
+                self.BUInput.to_excel(writer)
+                writer.save()
+                self.BUInputF = os.path.abspath(""+self.getProjectName()+"_BU")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.BUInput = None
+                self.BUInputF = ''
+        def getBUInputF(self):
+            return self.BUInputF
+        def getBUInput(self):
+            return self.BUInput
+        def setSegmentFiles(self, SG01FileName, SG02FileName, SG03FileName, SG04FileName):
+            if SG01FileName != '':
+                self.SG01File = pd.read_excel(SG01FileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_SG01", engine='xlsxwriter')
+                self.SG01File.to_excel(writer)
+                writer.save()
+                self.SG01FileName = os.path.abspath(""+self.getProjectName()+"_SG01")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.SG01File = None
+                self.SG01FileName = ''
+            self.SG02FileName = SG02FileName
+            if SG02FileName != '':
+                self.SG02File = pd.read_excel(SG02FileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_SG02", engine='xlsxwriter')
+                self.SG02File.to_excel(writer)
+                writer.save()
+                self.SG02FileName = os.path.abspath(""+self.getProjectName()+"_SG02")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.SG02File = None
+                self.SG02FileName = ''
+            if SG03FileName != '':
+                self.SG03File = pd.read_excel(SG03FileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_SG03", engine='xlsxwriter')
+                self.SG03File.to_excel(writer)
+                writer.save()
+                self.SG03FileName = os.path.abspath(""+self.getProjectName()+"_SG03")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.SG03File = None
+                self.SG04FileName = ''
+            if SG04FileName != '':
+                self.SG04File = pd.read_excel(SG04FileName)
+                cwd = os.getcwd()
+                if cwd[:-4] != 'Data':
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_SG04", engine='xlsxwriter')
+                self.SG04File.to_excel(writer)
+                writer.save()
+                self.SG04FileName = os.path.abspath(""+self.getProjectName()+"_SG04")
+                cwd = os.getcwd()
+                if cwd[:-4] == 'Data':
+                    os.chdir('..')
+            else:
+                self.SG04File = None
+                self.SG04FileName = ''
+        def getSG01FileName(self):
+            return self.SG01FileName
+        def getSG01File(self):
+            return self.SG01File
+        def getSG02FileName(self):
+            return self.SG02FileName
+        def getSG02File(self):
+            return self.SG02File
+        def getSG03FileName(self):
+            return self.SG03FileName
+        def getSG03File(self):
+            return self.SG03File
+        def getSG04FileName(self):
+            return self.SG04FileName
+        def getSG04File(self):
+            return self.SG04File
+        def setIPSaved(self, ip_saved):
+            self.ip_saved = ip_saved
+        def getIPSaved(self):
+            return self.ip_saved
+
+    def save_project_file(master):#modify to reflect latest Project Data
+        pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten
+        pf.write("ProjectName="+master.project.getProjectName()+"\n")
+        pf.write("FY_end="+master.project.getFYend()+"\n")
+        pf.write("ProjectTiming="+master.project.getTiming()+"\n")
+        pf.write("ProjectCreator="+master.project.getCreator()+"\n")
+        pf.write("Sector="+master.project.getSector()+"\n")
+        cwd = os.getcwd()
+        if cwd[-4:] != "Data":
+            os.chdir("Data")
+        pf.write("GLinputFile="+os.path.abspath(""+master.project.getProjectName()+"_gl")+"\n")
+        pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
+        pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
+        pf.write("JEField="+master.project.getJEField()+"\n")
+        pf.write("JEvalidated="+master.project.getJEvalidated()+"\n")
+        pf.write("sys_man_entries="+master.project.getsys_man_entries()+"\n")
+        pf.write("sysField="+master.project.getsysField()+"\n")
+        pf.write("sysValues="+str(master.project.getsysValues())+"\n")
+        pf.write("AccDefValidated="+master.project.getAccDefvalidated()+"\n")
+        pf.write("SourceInputF="+master.project.getSourceInputF()+"\n")
+        pf.write("PreparerInputF="+master.project.getPreparerInputF()+"\n")
+        pf.write("BUInputF="+master.project.getBUInputF()+"\n")
+        pf.write("SG01InputF="+master.project.getSG01FileName()+"\n")
+        pf.write("SG02InputF="+master.project.getSG02FileName()+"\n")
+        pf.write("SG03InputF="+master.project.getSG03FileName()+"\n")
+        pf.write("SG04InputF="+master.project.getSG04FileName()+"\n")
+        pf.write("IPSaved="+master.project.getIPSaved()+"\n")
+        cwd = os.getcwd()
+        if cwd[-4:] == "Data":
+            os.chdir("..")
+        pf.close()
+
+    def cleanup(master):
+        master.project.setEntryEffDates('','','','','')
+        master.project.setJEvalidated('')
+        master.project.saveSys_Manual_fields('','',[])
+        master.project.setAccDefvalidated('')
+        master.project.setSourceInputF('')
+        master.project.setPreparerInputF('')
+        master.project.setBUInputF('')
+        master.project.setSegmentFiles('','','','')
+        master.project.setIPSaved('True')
 
     def init_dashboard(self):
         self.l1.destroy()
@@ -256,7 +474,10 @@ class Application(Frame):
         jelist_scroll.pack(side=RIGHT, fill=Y)
         f2.pack(expand=YES, fill=BOTH)
         f3 = frame(ipjw, TOP)
-        Button(f3, text="Cancel", command=ipjw.destroy).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
+        def onCancel(master, ipjw):
+            master.cleanup()
+            ipjw.destroy()
+        Button(f3, text="Cancel", command=lambda: onCancel(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
         def onApprove(master, ipjw):
             master.project.saveJEvalidated()
             master.ipt_select_sysvalues_window(master, ipjw)
@@ -283,7 +504,10 @@ class Application(Frame):
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
-        Button(f1, text="Cancel", command=ssw.destroy).pack(side=BOTTOM, padx=10, pady=10)        
+        def onCancel(master, ssw):
+            master.cleanup()
+            ssw.destroy()
+        Button(f1, text="Cancel", command=lambda: onCancel(master, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
         f1.pack(expand=YES, fill=BOTH)
         #f2: Center pane
         f2 = frame(ssw, LEFT)
@@ -351,40 +575,220 @@ class Application(Frame):
         def export_COA(master):
             caData = master.project.getCAData()
             savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
-            caData.to_excel(savefile, index=False)
+            writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+            caData.to_excel(writer)
+            writer.save()
         Button(f2, text="Export COA", command=lambda: export_COA(master)).pack(side=RIGHT, padx=10, pady=10)        
         f2.pack(expand=YES, fill=BOTH)
         #f3: Bottom pane
         f3 = frame(iadw, BOTTOM)
         def onOK(master, iadw):
-            master.project.saveAccDefvalidated()
+            master.project.setAccDefvalidated('True')
             master.ipt_upload_source_window(master, iadw)
         Button(f3, text="Ok and Next", command=lambda: onOK(master, iadw)).pack(side=RIGHT, padx=10, pady=10)        
-        Button(f3, text="Cancel", command=iadw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        def onCancel(master, iadw):
+            master.cleanup()
+            iadw.destroy()
+        Button(f3, text="Cancel", command=lambda: onCancel(master, iadw)).pack(side=RIGHT, padx=10, pady=10)        
         f3.pack(expand=YES, fill=BOTH)
 
     def ipt_upload_source_window(self, master, iadw):
         iadw.destroy()
         iusw = Toplevel(master)
         iusw.wm_title("Validate Input Parameters: Source")
+        #f1: Top pane
+        f1 = frame(iusw, TOP)
+        Label(f1, text="Verify that source file has following fields: Source, SourceDescription and SourceGroup", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        master.sourceFileName = StringVar()
+        master.sourceFileName.set('')
+        master.changeInputF = 0
+        Button(f1, text="Source File...", command=lambda: browseSourceF(master)).pack(side=LEFT, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Middle pane
+        f2 = frame(iusw, TOP)
+        text_source = Text(f2, height=20, width=100)
+        def browseSourceF(master):
+            master.sourceFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.sourceFileName.get() == (): #in case of cancel or no selection
+                master.sourceFileName.set('')
+                return
+            master.changeInputF += 1
+            master.project.setSourceInputF(master.sourceFileName.get())
+            text_source.insert(END, master.project.getSourceInput()) #display dataframe in text
+        source_scroll = Scrollbar(f2, command= text_source.yview)
+        text_source.configure(yscrollcommand=source_scroll.set)
+        text_source.pack(side=LEFT)
+        source_scroll.pack(side=RIGHT, fill=Y)
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Bottom pane
+        f3 = frame(iusw, BOTTOM)
+        def onOK(master, iusw):
+            master.ipt_upload_preparer_window(master, iusw)
+        Button(f3, text="Ok and Next", command=lambda: onOK(master, iusw)).pack(side=RIGHT, padx=10, pady=10)        
+        def onCancel(master, iusw):
+            master.cleanup()
+            iusw.destroy()
+        Button(f3, text="Cancel", command=lambda: onCancel(master, iusw)).pack(side=RIGHT, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
+        
+    def ipt_upload_preparer_window(self, master, iusw):
+        iusw.destroy()
+        iupw = Toplevel(master)
+        iupw.wm_title("Validate Input Parameters: Source")
+        #f1: Top pane
+        f1 = frame(iupw, TOP)
+        Label(f1, text="Verify that preparer file has following fields: UserName, FullName, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        master.preparerFileName = StringVar()
+        master.preparerFileName.set('')
+        master.changeInputF = 0
+        Button(f1, text="Preparer File...", command=lambda: browsePreparerF(master)).pack(side=LEFT, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Middle pane
+        f2 = frame(iupw, TOP)
+        text_preparer = Text(f2, height=20, width=100)
+        def browsePreparerF(master):
+            master.preparerFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.preparerFileName.get() == (): #in case of cancel or no selection
+                master.preparerFileName.set('')
+                return
+            master.changeInputF += 1
+            master.project.setPreparerInputF(master.preparerFileName.get())
+            text_preparer.insert(END, master.project.getPreparerInput()) #display dataframe in text
+        preparer_scroll = Scrollbar(f2, command= text_preparer.yview)
+        text_preparer.configure(yscrollcommand=preparer_scroll.set)
+        text_preparer.pack(side=LEFT)
+        preparer_scroll.pack(side=RIGHT, fill=Y)
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Bottom pane
+        f3 = frame(iupw, BOTTOM)
+        def onOK(master, iupw):
+            master.ipt_upload_BU_window(master, iupw)
+        Button(f3, text="Ok and Next", command=lambda: onOK(master, iupw)).pack(side=RIGHT, padx=10, pady=10)        
+        def onCancel(master, iupw):
+            master.cleanup()
+            iupw.destroy()
+        Button(f3, text="Cancel", command=lambda: onCancel(master, iupw)).pack(side=RIGHT, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
 
-    def save_project_file(master):
-        pf = open(master.project.getProjectFName(), "w") #existing file will be overwritten
-        pf.write("ProjectName="+master.project.getProjectName()+"\n")
-        pf.write("FY_end="+master.project.getFYend()+"\n")
-        pf.write("ProjectTiming="+master.project.getTiming()+"\n")
-        pf.write("ProjectCreator="+master.project.getCreator()+"\n")
-        pf.write("Sector="+master.project.getSector()+"\n")
-        cwd = os.getcwd()
-        if cwd[-4:] != "Data":
-            os.chdir("Data")
-        pf.write("GLinputFile="+os.path.abspath(""+master.project.getProjectName()+"_gl")+"\n")
-        pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
-        pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
-        cwd = os.getcwd()
-        if cwd[-4:] == "Data":
-            os.chdir("..")
-        pf.close()
+    def ipt_upload_BU_window(self, master, iupw):
+        iupw.destroy()
+        iubw = Toplevel(master)
+        iubw.wm_title("Validate Input Parameters: Business Unit")
+        #f1: Top pane
+        f1 = frame(iubw, TOP)
+        Label(f1, text="Verify that business unit file has following fields: BusinessUnit, BusinessUnitDescription and BusinessUnitGroup", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        master.BUFileName = StringVar()
+        master.BUFileName.set('')
+        master.changeInputF = 0
+        Button(f1, text="Business Unit File...", command=lambda: browseBUFile(master)).pack(side=LEFT, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Middle pane
+        f2 = frame(iubw, TOP)
+        text_BU = Text(f2, height=20, width=120)
+        def browseBUFile(master):
+            master.BUFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.BUFileName.get() == (): #in case of cancel or no selection
+                master.BUFileName.set('')
+                return
+            master.changeInputF += 1
+            master.project.setBUInputF(master.BUFileName.get())
+            text_BU.insert(END, master.project.getBUInput()) #display dataframe in text
+        BU_scroll = Scrollbar(f2, command= text_BU.yview)
+        text_BU.configure(yscrollcommand=BU_scroll.set)
+        text_BU.pack(side=LEFT)
+        BU_scroll.pack(side=RIGHT, fill=Y)
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Bottom pane
+        f3 = frame(iubw, BOTTOM)
+        def onOK(master, iubw):
+            master.ipt_upload_seGments_window(master, iubw)
+        Button(f3, text="Ok and Next", command=lambda: onOK(master, iubw)).pack(side=RIGHT, padx=10, pady=10)        
+        def onCancel(master, iubw):
+            master.cleanup()
+            iubw.destroy()
+        Button(f3, text="Cancel", command=lambda: onCancel(master, iubw)).pack(side=RIGHT, padx=10, pady=10)        
+        f3.pack(expand=YES, fill=BOTH)
+
+    def ipt_upload_seGments_window(self, master, iubw):
+        iubw.destroy()
+        iugw = Toplevel(master)
+        iugw.wm_title("Validate Input Parameters: Segments")
+        #f1: Top pane
+        f1 = frame(iugw, TOP)
+        Label(f1, text="Verify that segment files has following fields: \nSegment0x, Segment0xDescription and Segment0xGroup", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        master.SG01FileName = StringVar()
+        master.SG01FileName.set('')
+        master.SG02FileName = StringVar()
+        master.SG02FileName.set('')
+        master.SG03FileName = StringVar()
+        master.SG03FileName.set('')
+        master.SG04FileName = StringVar()
+        master.SG04FileName.set('')
+        master.SG05FileName = StringVar()
+        master.SG05FileName.set('')
+        master.changeInputF = 0
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Mid pane
+        f2 = frame(iugw, TOP)
+        def browseSG01File(master):
+            master.SG01FileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.SG01FileName.get() == (): #in case of cancel or no selection
+                master.SG01FileName.set('')
+                return
+            master.changeInputF += 1
+        Label(f2, text="Segment01:", relief=FLAT, anchor="e").pack(side=LEFT, padx=10, pady=10)
+        Button(f2, text="Segment01 File...", command=lambda: browseSG01File(master)).pack(side=LEFT, padx=10, pady=10)
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Mid pane
+        f3 = frame(iugw, TOP)
+        def browseSG02File(master):
+            master.SG02FileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.SG02FileName.get() == (): #in case of cancel or no selection
+                master.SG02FileName.set('')
+                return
+            master.changeInputF += 1
+        Label(f3, text="Segment02:", relief=FLAT, anchor="e").pack(side=LEFT, padx=10, pady=10)
+        Button(f3, text="Segment02 File...", command=lambda: browseSG02File(master)).pack(side=LEFT, padx=10, pady=10)
+        f3.pack(expand=YES, fill=BOTH)
+        #f4: Mid pane
+        f4 = frame(iugw, TOP)
+        def browseSG03File(master):
+            master.SG03FileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.SG03FileName.get() == (): #in case of cancel or no selection
+                master.SG03FileName.set('')
+                return
+            master.changeInputF += 1
+        Label(f4, text="Segment03:", relief=FLAT, anchor="e").pack(side=LEFT, padx=10, pady=10)
+        Button(f4, text="Segment03 File...", command=lambda: browseSG03File(master)).pack(side=LEFT, padx=10, pady=10)
+        f4.pack(expand=YES, fill=BOTH)
+        #f5: Mid pane
+        f5 = frame(iugw, TOP)
+        def browseSG04File(master):
+            master.SG04FileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            if master.SG04FileName.get() == (): #in case of cancel or no selection
+                master.SG04FileName.set('')
+                return
+            master.changeInputF += 1
+        Label(f5, text="Segment04:", relief=FLAT, anchor="e").pack(side=LEFT, padx=10, pady=10)
+        Button(f5, text="Segment04 File...", command=lambda: browseSG04File(master)).pack(side=LEFT, padx=10, pady=10)
+        f5.pack(expand=YES, fill=BOTH)
+        #f6: Bottom pane
+        f6 = frame(iugw, BOTTOM)
+        def onSave(master, iugw):
+            master.project.setIPSaved('True')
+            #save segment files
+            if master.changeInputF > 0:
+                master.project.setSegmentFiles(master.SG01FileName.get(), master.SG02FileName.get(), master.SG03FileName.get(), master.SG04FileName.get())
+            #write project file
+            master.save_project_file()
+            iugw.destroy()
+            master.init_dashboard()
+        Button(f6, text="Save and Close", command=lambda: onSave(master, iugw)).pack(side=RIGHT, padx=10, pady=10)        
+        def onCancel(master, iugw):
+            master.cleanup()
+            iugw.destroy()
+        Button(f6, text="Cancel", command=lambda: onCancel(master, iugw)).pack(side=RIGHT, padx=10, pady=10)
+        f6.pack(expand=YES, fill=BOTH)
 
     def input_data_window(self):
         if self.project == None:
@@ -587,12 +991,50 @@ class Application(Frame):
             elif line[:11] == "CAinputFile":
                 inputFileSetFlag = 0
                 caInputFile = line[12:-1]
+            elif line[:7] == "JEField":
+                jeField = line[8:-1]
+            elif line[:11] == "JEvalidated":
+                jeValidated = line[12:-1]
+            elif line[:15] == "sys_man_entries":
+                sys_man_entries = line[16:-1]
+            elif line[:8] == "sysField":
+                sysField = line[9:-1]
+            elif line[:9] == "sysValues":
+                temp = line[10:-1]
+                sysValues = []
+                x = ''
+                for char in temp:
+                    if char not in ('[',']'):
+                        if char == ',':
+                            sysValues.append(x)
+                            x = ''
+                        else:
+                            x += char
+            elif line[:15] == "AccDefValidated":
+                AccDefValidated = line[16:-1]
+            elif line[:12] == "SourceInputF":
+                SourceInputF = line[13:-1]
+            elif line[:14] == "PreparerInputF":
+                PreparerInputF = line[15:-1]
+            elif line[:8] == "BUInputF":
+                BUInputF = line[9:-1]
+            elif line[:10] == "SG01InputF":
+                SG01InputF = line[11:-1]
+            elif line[:10] == "SG02InputF":
+                SG02InputF = line[11:-1]
+            elif line[:10] == "SG03InputF":
+                SG03InputF = line[11:-1]
+            elif line[:10] == "SG04InputF":
+                SG04InputF = line[11:-1]
+            elif line[:7] == "IPSaved":
+                IPSaved = line[8:-1]
         f.close()
+
         if inputFileSetFlag == 1:
             self.project = self.Project(projectName, fy_end, timing, creator, sector, fname)
             self.status.set("Loading Project File...Done. Now select Tools -> Manage Data")
             #check on garbage collection in python
-        else:
+        elif IPSaved != 'True':
             self.project = self.Project(projectName, fy_end, timing, creator, sector, fname)
             try:
                 self.project.setGLInputFile(glInputFile)
@@ -604,8 +1046,29 @@ class Application(Frame):
                 return
             else:
                 #Display dashboard
-                #self.init_dashboard()
                 self.status.set("Loading Project...Done. Now select Tools -> Input Parameters")
+        else:
+            self.project = self.Project(projectName, fy_end, timing, creator, sector, fname)
+            try:
+                self.project.setGLInputFile(glInputFile)
+                self.project.setTBInputFile(tbInputFile)
+                self.project.setCAInputFile(caInputFile)
+                self.status.set("Loading Project...Done")
+            except IOError:
+                self.status.set("Missing Data Files... Select Tools -> Manage Data; and upload data files again.")
+                return
+            else:
+                self.project.setJEField(jeField)
+                self.project.setJEvalidated(jeValidated)
+                self.project.saveSys_Manual_fields(sys_man_entries, sysField, sysValues)
+                self.project.setAccDefvalidated(AccDefValidated)
+                self.project.setSourceInputF(SourceInputF)
+                self.project.setPreparerInputF(PreparerInputF)
+                self.project.setBUInputF(BUInputF)
+                self.project.setSegmentFiles(SG01InputF, SG02InputF, SG03InputF, SG04InputF)
+                self.project.setIPSaved(IPSaved)
+                self.status.set("Loading Project...Done.")
+                self.init_dashboard()#Display dashboard
 
     def makeFileMenu(self, mBar):
         CmdBtn = Menubutton(mBar, text='File', underline=0)

@@ -123,14 +123,14 @@ class Application(Frame):
             if sourceFileName != '':
                 self.sourceInput = pd.read_excel(sourceFileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != "Data":
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_src", engine='xlsxwriter')
                 self.sourceInput.to_excel(writer)
                 writer.save()
                 self.sourceInputF = os.path.abspath(""+self.getProjectName()+"_src")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.sourceInputF = ''
@@ -144,14 +144,14 @@ class Application(Frame):
             if preparerFileName != '':
                 self.preparerInput = pd.read_excel(preparerFileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_prep", engine='xlsxwriter')
                 self.preparerInput.to_excel(writer)
                 writer.save()
                 self.preparerInputF = os.path.abspath(""+self.getProjectName()+"_prep")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.preparerInput = None
@@ -165,14 +165,14 @@ class Application(Frame):
             if BUFileName != '':
                 self.BUInput = pd.read_excel(BUFileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_BU", engine='xlsxwriter')
                 self.BUInput.to_excel(writer)
                 writer.save()
                 self.BUInputF = os.path.abspath(""+self.getProjectName()+"_BU")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.BUInput = None
@@ -185,14 +185,14 @@ class Application(Frame):
             if SG01FileName != '':
                 self.SG01File = pd.read_excel(SG01FileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_SG01", engine='xlsxwriter')
                 self.SG01File.to_excel(writer)
                 writer.save()
                 self.SG01FileName = os.path.abspath(""+self.getProjectName()+"_SG01")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.SG01File = None
@@ -201,14 +201,14 @@ class Application(Frame):
             if SG02FileName != '':
                 self.SG02File = pd.read_excel(SG02FileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_SG02", engine='xlsxwriter')
                 self.SG02File.to_excel(writer)
                 writer.save()
                 self.SG02FileName = os.path.abspath(""+self.getProjectName()+"_SG02")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.SG02File = None
@@ -216,14 +216,14 @@ class Application(Frame):
             if SG03FileName != '':
                 self.SG03File = pd.read_excel(SG03FileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_SG03", engine='xlsxwriter')
                 self.SG03File.to_excel(writer)
                 writer.save()
                 self.SG03FileName = os.path.abspath(""+self.getProjectName()+"_SG03")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.SG03File = None
@@ -231,14 +231,14 @@ class Application(Frame):
             if SG04FileName != '':
                 self.SG04File = pd.read_excel(SG04FileName)
                 cwd = os.getcwd()
-                if cwd[:-4] != 'Data':
+                if cwd[-4:] != 'Data':
                     os.chdir('Data')
                 writer = pd.ExcelWriter(""+self.getProjectName()+"_SG04", engine='xlsxwriter')
                 self.SG04File.to_excel(writer)
                 writer.save()
                 self.SG04FileName = os.path.abspath(""+self.getProjectName()+"_SG04")
                 cwd = os.getcwd()
-                if cwd[:-4] == 'Data':
+                if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
                 self.SG04File = None
@@ -305,7 +305,11 @@ class Application(Frame):
         master.project.setPreparerInputF('')
         master.project.setBUInputF('')
         master.project.setSegmentFiles('','','','')
-        master.project.setIPSaved('True')
+        master.project.setIPSaved('')
+        cwd = os.getcwd()
+        if cwd[-4:] == 'Data':
+            os.chdir('..')
+        master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
     def init_dashboard(self):
         self.l1.destroy()

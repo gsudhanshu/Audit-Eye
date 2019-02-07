@@ -312,7 +312,6 @@ class Application(Frame):
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
     def cutoff_analysis(self):
-        self.status.set('in here')
         caw = Toplevel(self)
         caw.wm_title("Cut-Off Analysis")
         #f1: Top pane
@@ -678,6 +677,7 @@ class Application(Frame):
                 return
             master.changeInputF += 1
             master.project.setSourceInputF(master.sourceFileName.get())
+            text_source.delete(1.0, END)
             text_source.insert(END, master.project.getSourceInput()) #display dataframe in text
         source_scroll = Scrollbar(f2, command= text_source.yview)
         text_source.configure(yscrollcommand=source_scroll.set)
@@ -717,6 +717,7 @@ class Application(Frame):
                 return
             master.changeInputF += 1
             master.project.setPreparerInputF(master.preparerFileName.get())
+            text_preparer.delete(1.0, END)
             text_preparer.insert(END, master.project.getPreparerInput()) #display dataframe in text
         preparer_scroll = Scrollbar(f2, command= text_preparer.yview)
         text_preparer.configure(yscrollcommand=preparer_scroll.set)
@@ -756,6 +757,7 @@ class Application(Frame):
                 return
             master.changeInputF += 1
             master.project.setBUInputF(master.BUFileName.get())
+            text_BU.delete(1.0, END)
             text_BU.insert(END, master.project.getBUInput()) #display dataframe in text
         BU_scroll = Scrollbar(f2, command= text_BU.yview)
         text_BU.configure(yscrollcommand=BU_scroll.set)

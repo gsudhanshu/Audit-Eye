@@ -311,6 +311,66 @@ class Application(Frame):
             os.chdir('..')
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
+    def cutoff_analysis(self):
+        self.status.set('in here')
+        caw = Toplevel(self)
+        caw.wm_title("Cut-Off Analysis")
+        #f1: Top pane
+        f1 = frame(caw, TOP)
+        Label(f1, text="Date Range:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        glData = self.project.getGLData()
+        self.fetchData = glData
+        from_dt = glData['Posting Date'].min().strftime('%d/%m/%Y')
+        to_dt = glData['Posting Date'].max().strftime('%d/%m/%Y')
+        #from-to Date Combobox
+        ipt_from_dt = DateEntry(f1, relief=SUNKEN, year=int(from_dt[6:10]), month=int(from_dt[3:5]), day=int(from_dt[:2]))
+        ipt_from_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text=" to ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_to_dt = DateEntry(f1, relief=SUNKEN, year=int(to_dt[6:10]), month=int(to_dt[3:5]), day=int(to_dt[:2]))
+        ipt_to_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        #f2: Mid pane
+        f2 = frame(caw, TOP)
+        glAccNos = glData["G_L Account No_"].unique().tolist()
+        Label(f2, text="GL Account No.:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_glAccNo = ttk.Combobox(f2, values=glAccNos)
+        ipt_glAccNo.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)       
+        f2.pack(expand=YES, fill=BOTH)
+        #f3: Mid pane
+        f3 = frame(caw, TOP)
+        Label(f3, text="Threshold Amount:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_thresholdAmt = Entry(f3, relief=SUNKEN)
+        ipt_thresholdAmt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)       
+        f3.pack(expand=YES, fill=BOTH)
+        #f4: Mid pane
+        f4 = frame(caw, TOP)
+        def fetch(master):
+            master.fetchData = glData.loc[(glData["Posting Date"] >= pd.Timestamp(ipt_from_dt.get_date())) & (glData["Posting Date"] <= pd.Timestamp(ipt_to_dt.get_date()))]
+            master.fetchData = master.fetchData.loc[(master.fetchData["G_L Account No_"] == int(ipt_glAccNo.get()))]
+            master.fetchData = master.fetchData.loc[(abs(master.fetchData["Amount"]) >= int(ipt_thresholdAmt.get()))]
+            text_src.delete(1.0, END)
+            text_src.insert(END, master.fetchData) #display dataframe in text
+        Button(f4, text="Fetch", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
+        f4.pack(expand=YES, fill=BOTH)
+        #f5: Mid pane
+        f5 = frame(caw, TOP)
+        text_src = Text(f5, state=NORMAL, height=20, width=100)
+        src_scroll = Scrollbar(f5, command= text_src.yview)
+        text_src.configure(yscrollcommand=src_scroll.set)
+        text_src.pack(side=LEFT)
+        src_scroll.pack(side=RIGHT, fill=Y)
+        f5.pack(expand=YES, fill=BOTH)
+        #f6: Bottom pane
+        f6 = frame(caw, BOTTOM)
+        Button(f6, text="Done", command=caw.destroy).pack(side=RIGHT, padx=10, pady=10)
+        def export_txn(master):
+            savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+            writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+            master.fetchData.to_excel(writer)
+            writer.save()            
+        Button(f6, text="Export Transactions", command=lambda: export_txn(self)).pack(side=RIGHT, padx=10, pady=10)
+        f6.pack(expand=YES, fill=BOTH)
+
     def init_dashboard(self):
         self.l1.destroy()
         #f1: left pane
@@ -353,7 +413,7 @@ class Application(Frame):
         Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Analyze Relationship of 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Gross Margin Analysis", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f4, text="Cutoff Analysis of GL accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f4, text="Cutoff Analysis of GL accounts", bg="white", command=self.cutoff_analysis).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Additional Reports", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Custom Analytics - visualization", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f4.pack(expand=YES, fill=BOTH)

@@ -8,6 +8,7 @@ import ttk
 import os
 from shutil import copyfile
 import numpy as np
+import unicodedata as uni
 
 def frame(root, side):
     w=Frame(root)
@@ -316,7 +317,7 @@ class Application(Frame):
         caw.wm_title("Cut-Off Analysis")
         #f1: Top pane
         f1 = frame(caw, TOP)
-        Label(f1, text="Date Range:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Specify Date Range: from", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         glData = self.project.getGLData()
         self.fetchData = glData
         from_dt = glData['Posting Date'].min().strftime('%d/%m/%Y')
@@ -330,10 +331,48 @@ class Application(Frame):
         f1.pack(expand=YES, fill=BOTH)
         #f2: Mid pane
         f2 = frame(caw, TOP)
-        glAccNos = glData["G_L Account No_"].unique().tolist()
-        Label(f2, text="GL Account No.:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_glAccNo = ttk.Combobox(f2, values=glAccNos)
-        ipt_glAccNo.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)       
+        caData = self.project.getCAData()
+        acc_categories = caData['Account Category'].unique().tolist()
+        acc_category = []
+        for s in acc_categories:
+            if str(s) != 'nan':
+                acc_category.append(uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat = ttk.Combobox(f2, values=acc_category)
+        ipt_accClass = ttk.Combobox(f2)
+        ipt_accSubclass = ttk.Combobox(f2)
+        ipt_glAcc = Listbox(f2,selectmode='multiple')
+        def accCatSelected(self):
+            if not ipt_accCat.get() == '':
+                #get unique values in account class for selected category
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get())]
+                acc_class = tempData['Account Class'].unique().tolist()
+                ipt_accClass['values']=acc_class
+                caw.update()
+        def accClassSelected(self):
+            if not ipt_accClass.get() == '':
+                #get unique values in account Subclass for selected class
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())]
+                acc_subclass = tempData['Account Subclass'].unique().tolist()
+                ipt_accSubclass.configure(values=acc_subclass)
+                caw.update()
+        def accSubclassSelected(self):
+            ipt_glAcc.delete(0, END)
+            if not ipt_accSubclass.get() == '':
+                #get unique values in gl account for selected subclass
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
+                glAcc = tempData['GL Account no.'].unique().tolist()
+                for item in glAcc:
+                    ipt_glAcc.insert(END, int(item))
+                ipt_glAcc.select_set(0, END)
+                caw.update()
+        ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
+        ipt_accClass.bind("<<ComboboxSelected>>", accClassSelected)
+        ipt_accSubclass.bind("<<ComboboxSelected>>", accSubclassSelected)
+        Label(f2, text="Select Accounts:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_glAcc.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         f2.pack(expand=YES, fill=BOTH)
         #f3: Mid pane
         f3 = frame(caw, TOP)
@@ -345,7 +384,10 @@ class Application(Frame):
         f4 = frame(caw, TOP)
         def fetch(master):
             master.fetchData = glData.loc[(glData["Posting Date"] >= pd.Timestamp(ipt_from_dt.get_date())) & (glData["Posting Date"] <= pd.Timestamp(ipt_to_dt.get_date()))]
-            master.fetchData = master.fetchData.loc[(master.fetchData["G_L Account No_"] == int(ipt_glAccNo.get()))]
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            master.fetchData = master.fetchData.loc[(master.fetchData["G_L Account No_"].isin(sel_list_glAcc))]
             master.fetchData = master.fetchData.loc[(abs(master.fetchData["Amount"]) >= int(ipt_thresholdAmt.get()))]
             text_src.delete(1.0, END)
             text_src.insert(END, master.fetchData) #display dataframe in text
@@ -353,7 +395,7 @@ class Application(Frame):
         f4.pack(expand=YES, fill=BOTH)
         #f5: Mid pane
         f5 = frame(caw, TOP)
-        text_src = Text(f5, state=NORMAL, height=20, width=100)
+        text_src = Text(f5, state=NORMAL, height=20, width=120)
         src_scroll = Scrollbar(f5, command= text_src.yview)
         text_src.configure(yscrollcommand=src_scroll.set)
         text_src.pack(side=LEFT)

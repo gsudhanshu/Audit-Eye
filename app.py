@@ -657,17 +657,19 @@ class Application(Frame):
         df4['GL Account no.'] = [list(set(caData_subset['GL Account no.'].loc[caData_subset['Account Subclass'] == x['Account Subclass']])) for _, x in df4.iterrows()]
         gi = 0
         for item in caData_subset['Account Category'].unique().tolist():
-            accTree.insert('', 'end', item, text=item)
+            if str(item) == 'nan':
+                continue
+            accTree.insert('', 'end', 'AccCategory-'+item, text=item)
             for ite in df2['Account Class'].loc[df2['Account Category'] == item]:
                 for x in ite:
-                    accTree.insert(item, 'end', x, text=x)
+                    accTree.insert('AccCategory-'+item, 'end', 'AccClass-'+x, text=x)
                     for it in df3['Account Subclass'].loc[df3['Account Class'] == x]:
                         for y in it:
-                            accTree.insert(x, 'end', y, text=y)
+                            accTree.insert('AccClass-'+x, 'end', 'AccSubclass-'+y, text=y)
                             for i in df4['GL Account no.'].loc[df4['Account Subclass'] == y]:
                                 for z in i:
                                     gl_no = str(z)[:-3]
-                                    accTree.insert(y, 'end', gi, text=gl_no)
+                                    accTree.insert('AccSubclass-'+y, 'end', 'AccGL-'+str(gi), text=gl_no)
                                     gi += 1
         accTree.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1.pack(expand=YES, fill=BOTH)

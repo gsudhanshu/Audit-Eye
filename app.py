@@ -9,6 +9,8 @@ import os
 from shutil import copyfile
 import numpy as np
 import unicodedata as uni
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 def frame(root, side):
     w=Frame(root)
@@ -312,6 +314,146 @@ class Application(Frame):
             os.chdir('..')
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
+    def correlation_2acc(self):
+        c2aw = Toplevel(self)
+        c2aw.wm_title("Correlation Analysis of 2 Accounts")
+        caData = self.project.getCAData()
+        glData = self.project.getGLData()
+        acc_categories = caData['Account Category'].unique().tolist()
+        acc_category = []
+        for s in acc_categories:
+            if str(s) != 'nan':
+                acc_category.append(uni.normalize('NFKD', s).encode('ascii','ignore'))
+        #f1: Top Pane
+        f1 = frame(c2aw, TOP)
+        ipt_accCat = ttk.Combobox(f1, values=acc_category)
+        ipt_accClass = ttk.Combobox(f1)
+        ipt_accSubclass = ttk.Combobox(f1)
+        ipt_glAcc = Listbox(f1,selectmode='multiple', exportselection=False)
+        def accCatSelected(self):
+            if not ipt_accCat.get() == '':
+                #get unique values in account class for selected category
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get())]
+                acc_class = tempData['Account Class'].unique().tolist()
+                ipt_accClass['values']=acc_class
+                c2aw.update()
+        def accClassSelected(self):
+            if not ipt_accClass.get() == '':
+                #get unique values in account Subclass for selected class
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())]
+                acc_subclass = tempData['Account Subclass'].unique().tolist()
+                ipt_accSubclass.configure(values=acc_subclass)
+                c2aw.update()
+        def accSubclassSelected(self):
+            ipt_glAcc.delete(0, END)
+            if not ipt_accSubclass.get() == '':
+                #get unique values in gl account for selected subclass
+                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
+                glAcc = tempData['GL Account no.'].unique().tolist()
+                for item in glAcc:
+                    ipt_glAcc.insert(END, int(item))
+                ipt_glAcc.select_set(0, END)
+                c2aw.update()
+        ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
+        ipt_accClass.bind("<<ComboboxSelected>>", accClassSelected)
+        ipt_accSubclass.bind("<<ComboboxSelected>>", accSubclassSelected)
+        Label(f1, text="Select Group 'A' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_glAcc.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        f1_1 = frame(c2aw, TOP)
+        Label(f1_1, text="Set name of Group 'A' Account:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
+        ipt_accA_name = Entry(f1_1, relief=SUNKEN)
+        ipt_accA_name.pack(side=LEFT, padx=10, pady=10)
+        f1_1.pack(expand=YES, fill=BOTH)
+        #f2: Mid Pane
+        f2 = frame(c2aw, TOP)
+        ipt_accBCat = ttk.Combobox(f2, values=acc_category)
+        ipt_accBClass = ttk.Combobox(f2)
+        ipt_accBSubclass = ttk.Combobox(f2)
+        ipt_glAccB = Listbox(f2, selectmode='multiple', exportselection=False)
+        def accBCatSelected(self):
+            if not ipt_accBCat.get() == '':
+                #get unique values in account class for selected category
+                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get())]
+                acc_class = tempData['Account Class'].unique().tolist()
+                ipt_accBClass['values']=acc_class
+                c2aw.update()
+        def accBClassSelected(self):
+            if not ipt_accBClass.get() == '':
+                #get unique values in account Subclass for selected class
+                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get()) & (caData['Account Class'] == ipt_accBClass.get())]
+                acc_subclass = tempData['Account Subclass'].unique().tolist()
+                ipt_accBSubclass.configure(values=acc_subclass)
+                c2aw.update()
+        def accBSubclassSelected(self):
+            ipt_glAccB.delete(0, END)
+            if not ipt_accBSubclass.get() == '':
+                #get unique values in gl account for selected subclass
+                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get()) & (caData['Account Class'] == ipt_accBClass.get())& (caData['Account Subclass'] == ipt_accBSubclass.get())]
+                glAcc = tempData['GL Account no.'].unique().tolist()
+                for item in glAcc:
+                    ipt_glAccB.insert(END, int(item))
+                ipt_glAccB.select_set(0, END)
+                c2aw.update()
+        ipt_accBCat.bind("<<ComboboxSelected>>", accBCatSelected)
+        ipt_accBClass.bind("<<ComboboxSelected>>", accBClassSelected)
+        ipt_accBSubclass.bind("<<ComboboxSelected>>", accBSubclassSelected)
+        Label(f2, text="Select Group 'B' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accBCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accBClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accBSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_glAccB.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        f2.pack(expand=YES, fill=BOTH)
+        f2_2 = frame(c2aw, TOP)
+        Label(f2_2, text="Set name of Group 'B' Account:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
+        ipt_accB_name = Entry(f2_2, relief=SUNKEN)
+        ipt_accB_name.pack(side=LEFT, padx=10, pady=10)
+        f2_2.pack(expand=YES, fill=BOTH)
+        #f3: Mid pane
+        f3 = frame(c2aw, TOP)
+        def fetch(master):
+            gw = Toplevel(c2aw)
+            gw.wm_title("Correlation Analysis")
+            graphF = frame(gw, TOP)
+            sel_list_glAccA = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAccA.append(ipt_glAcc.get(i))
+            sel_list_glAccB = []
+            for i in ipt_glAccB.curselection():
+                sel_list_glAccB.append(ipt_glAccB.get(i))
+            #test data
+            Data = {'Year': [1920,1930,1940,1950,1960,1970,1980,1990,2000,2010], 'Unemployment_Rate': [9.8,12,8,7.2,6.9,7,6.5,6.2,5.5,6.3]}
+            df = pd.DataFrame(Data,columns=['Year','Unemployment_Rate'])
+            df = df[['Year', 'Unemployment_Rate']].groupby('Year').sum()
+            figure = plt.Figure(figsize=(5,4), dpi=100)
+            ax = figure.add_subplot(111)
+            line = FigureCanvasTkAgg(figure, graphF)
+            line.get_tk_widget().pack(side=TOP, fill=BOTH)
+            df.plot(kind='line', legend=True, ax=ax, color='r', marker='o', fontsize=10)
+            ax.set_title('Year Vs. Unemployment Rate')
+            graphF.pack(expand=YES, fill=BOTH)
+            tableF = frame(gw, TOP)
+            text_tbl = Text(tableF, state=NORMAL, height=10, width=100)
+            tbl_scroll = Scrollbar(tableF, command= text_tbl.yview)
+            text_tbl.configure(yscrollcommand=tbl_scroll.set)
+            text_tbl.insert(END, df)
+            text_tbl.pack(side=LEFT)
+            tbl_scroll.pack(side=RIGHT, fill=Y)
+            tableF.pack(expand=YES, fill=BOTH)
+            buttonF = frame(gw, BOTTOM)
+            Button(buttonF, text="Export to Excel", command=gw.destroy).pack(side=TOP, padx=10, pady=10)
+            buttonF.pack(expand=YES, fill=BOTH)
+        Button(f3, text="Generate Correlation Graph", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
+        f3.pack(expand=YES, fill=BOTH)
+        #f4: Bottom pane
+        f4 = frame(c2aw, BOTTOM)
+        Button(f4, text="Done", command=c2aw.destroy).pack(side=RIGHT, padx=10, pady=10)
+        Button(f4, text="Cancel", command=c2aw.destroy).pack(side=RIGHT, padx=10, pady=10)
+        f4.pack(expand=YES, fill=BOTH)
+
     def cutoff_analysis(self):
         caw = Toplevel(self)
         caw.wm_title("Cut-Off Analysis")
@@ -340,7 +482,7 @@ class Application(Frame):
         ipt_accCat = ttk.Combobox(f2, values=acc_category)
         ipt_accClass = ttk.Combobox(f2)
         ipt_accSubclass = ttk.Combobox(f2)
-        ipt_glAcc = Listbox(f2,selectmode='multiple')
+        ipt_glAcc = Listbox(f2,selectmode='multiple', exportselection=False)
         def accCatSelected(self):
             if not ipt_accCat.get() == '':
                 #get unique values in account class for selected category
@@ -391,7 +533,7 @@ class Application(Frame):
             master.fetchData = master.fetchData.loc[(abs(master.fetchData["Amount"]) >= int(ipt_thresholdAmt.get()))]
             text_src.delete(1.0, END)
             text_src.insert(END, master.fetchData) #display dataframe in text
-        Button(f4, text="Fetch", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
+        Button(f4, text="Generate", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
         f4.pack(expand=YES, fill=BOTH)
         #f5: Mid pane
         f5 = frame(caw, TOP)
@@ -450,7 +592,7 @@ class Application(Frame):
         #f4: Last pane
         f4 = frame(self.w, LEFT)
         Label(f4, text="Account and Journal Entry Analysis", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f4, text="Analyze Correlation b/w 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Analyze Correlation b/w 2 accounts", bg="white", command=self.correlation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Analyze Relationship of 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Gross Margin Analysis", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -620,7 +762,7 @@ class Application(Frame):
         ipt_entries.set("Only Manual Entries")
         ipt_entries.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         ipt_sysField = ttk.Combobox(f2, values=columns)
-        ipt_sysValues = Listbox(f2,selectmode='multiple')
+        ipt_sysValues = Listbox(f2,selectmode='multiple', exportselection=False)
         def sysFieldSelected(self):
             if not ipt_sysField.get() == '':
                 #get unique values in column from glData

@@ -79,13 +79,13 @@ class Application(Frame):
             return self.caInputFile
         def setGLInputFile(self, glInputF):
             self.glInputFile = glInputF
-            self.gldata = pd.read_excel(glInputF)
+            self.gldata = pd.read_excel(glInputF, skiprows=3)
         def setTBInputFile(self, tbInputF):
             self.tbInputFile = tbInputF
-            self.tbdata = pd.read_excel(tbInputF)
+            self.tbdata = pd.read_excel(tbInputF, skiprows=3)
         def setCAInputFile(self, caInputF):
             self.caInputFile = caInputF
-            self.cadata = pd.read_excel(caInputF)
+            self.cadata = pd.read_excel(caInputF, skiprows=3)
         def getGLData(self):
             return self.gldata
         def getTBData(self):
@@ -349,9 +349,9 @@ class Application(Frame):
             if not ipt_accSubclass.get() == '':
                 #get unique values in gl account for selected subclass
                 tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
-                glAcc = tempData['GL Account no.'].unique().tolist()
+                glAcc = tempData['Particulars'].unique().tolist()
                 for item in glAcc:
-                    ipt_glAcc.insert(END, int(item))
+                    ipt_glAcc.insert(END, item)
                 ipt_glAcc.select_set(0, END)
                 c2aw.update()
         ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
@@ -393,9 +393,9 @@ class Application(Frame):
             if not ipt_accBSubclass.get() == '':
                 #get unique values in gl account for selected subclass
                 tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get()) & (caData['Account Class'] == ipt_accBClass.get())& (caData['Account Subclass'] == ipt_accBSubclass.get())]
-                glAcc = tempData['GL Account no.'].unique().tolist()
+                glAcc = tempData['Particulars'].unique().tolist()
                 for item in glAcc:
-                    ipt_glAccB.insert(END, int(item))
+                    ipt_glAccB.insert(END, item)
                 ipt_glAccB.select_set(0, END)
                 c2aw.update()
         ipt_accBCat.bind("<<ComboboxSelected>>", accBCatSelected)
@@ -415,25 +415,37 @@ class Application(Frame):
         #f3: Mid pane
         f3 = frame(c2aw, TOP)
         def fetch(master):
-            gw = Toplevel(c2aw)
-            gw.wm_title("Correlation Analysis")
-            graphF = frame(gw, TOP)
             sel_list_glAccA = []
             for i in ipt_glAcc.curselection():
                 sel_list_glAccA.append(ipt_glAcc.get(i))
             sel_list_glAccB = []
             for i in ipt_glAccB.curselection():
                 sel_list_glAccB.append(ipt_glAccB.get(i))
-            #test data
-            Data = {'Year': [1920,1930,1940,1950,1960,1970,1980,1990,2000,2010], 'Unemployment_Rate': [9.8,12,8,7.2,6.9,7,6.5,6.2,5.5,6.3]}
-            df = pd.DataFrame(Data,columns=['Year','Unemployment_Rate'])
-            df = df[['Year', 'Unemployment_Rate']].groupby('Year').sum()
+            if sel_list_glAccA == [] or sel_list_glAccB == [] or ipt_accB_name.get() == "" or ipt_accA_name.get() == "":
+                master.status.set("Select Account A and Account B and name them!")
+                return
+            gw = Toplevel(c2aw)
+            gw.wm_title("Correlation Analysis")
+            graphF = frame(gw, TOP)
+            accAData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
+            Data = accAData[['Date', 'Amount']]
+            Data = Data.groupby(Data.Date.dt.to_period("M")).sum()
+            Data = Data.rename(columns = {'Amount':ipt_accA_name.get()})
+            accBData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
+            Data1 = accBData[['Date', 'Amount']]
+            Data1 = Data1.groupby(Data1.Date.dt.to_period("M")).sum()
+            Data1 = Data1.rename(columns = {'Amount':ipt_accB_name.get()})
+            df = pd.merge(Data, Data1, on=['Date'])
             figure = plt.Figure(figsize=(5,4), dpi=100)
             ax = figure.add_subplot(111)
             line = FigureCanvasTkAgg(figure, graphF)
             line.get_tk_widget().pack(side=TOP, fill=BOTH)
-            df.plot(kind='line', legend=True, ax=ax, color='r', marker='o', fontsize=10)
-            ax.set_title('Year Vs. Unemployment Rate')
+            Data.plot(kind='line', legend=True, ax=ax, color='red', marker='o', fontsize=10)
+            Data1.plot(kind='line', legend=True, ax=ax, color='blue', marker='o', fontsize=10)
+            ax.set_title(ipt_accA_name.get()+' Vs. '+ipt_accB_name.get())
+            os.chdir('images')
+            figure.savefig('myplot.png')
+            os.chdir('..')
             graphF.pack(expand=YES, fill=BOTH)
             tableF = frame(gw, TOP)
             text_tbl = Text(tableF, state=NORMAL, height=10, width=100)
@@ -444,7 +456,17 @@ class Application(Frame):
             tbl_scroll.pack(side=RIGHT, fill=Y)
             tableF.pack(expand=YES, fill=BOTH)
             buttonF = frame(gw, BOTTOM)
-            Button(buttonF, text="Export to Excel", command=gw.destroy).pack(side=TOP, padx=10, pady=10)
+            def export_to_excel(df):
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                df.to_excel(writer, sheet_name='Sheet1')
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
+                os.chdir('images')
+                worksheet.insert_image('E2', 'myplot.png')
+                writer.save()
+                os.chdir('..')
+            Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(df)).pack(side=TOP, padx=10, pady=10)
             buttonF.pack(expand=YES, fill=BOTH)
         Button(f3, text="Generate Correlation Graph", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
         f3.pack(expand=YES, fill=BOTH)
@@ -462,8 +484,8 @@ class Application(Frame):
         Label(f1, text="Specify Date Range: from", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         glData = self.project.getGLData()
         self.fetchData = glData
-        from_dt = glData['Posting Date'].min().strftime('%d/%m/%Y')
-        to_dt = glData['Posting Date'].max().strftime('%d/%m/%Y')
+        from_dt = glData['Date'].min().strftime('%d/%m/%Y')
+        to_dt = glData['Date'].max().strftime('%d/%m/%Y')
         #from-to Date Combobox
         ipt_from_dt = DateEntry(f1, relief=SUNKEN, year=int(from_dt[6:10]), month=int(from_dt[3:5]), day=int(from_dt[:2]))
         ipt_from_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -502,9 +524,9 @@ class Application(Frame):
             if not ipt_accSubclass.get() == '':
                 #get unique values in gl account for selected subclass
                 tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
-                glAcc = tempData['GL Account no.'].unique().tolist()
+                glAcc = tempData['Particulars'].unique().tolist()
                 for item in glAcc:
-                    ipt_glAcc.insert(END, int(item))
+                    ipt_glAcc.insert(END, item)
                 ipt_glAcc.select_set(0, END)
                 caw.update()
         ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
@@ -525,11 +547,11 @@ class Application(Frame):
         #f4: Mid pane
         f4 = frame(caw, TOP)
         def fetch(master):
-            master.fetchData = glData.loc[(glData["Posting Date"] >= pd.Timestamp(ipt_from_dt.get_date())) & (glData["Posting Date"] <= pd.Timestamp(ipt_to_dt.get_date()))]
+            master.fetchData = glData.loc[(glData["Date"] >= pd.Timestamp(ipt_from_dt.get_date())) & (glData["Date"] <= pd.Timestamp(ipt_to_dt.get_date()))]
             sel_list_glAcc = []
             for i in ipt_glAcc.curselection():
                 sel_list_glAcc.append(ipt_glAcc.get(i))
-            master.fetchData = master.fetchData.loc[(master.fetchData["G_L Account No_"].isin(sel_list_glAcc))]
+            master.fetchData = master.fetchData.loc[(master.fetchData["Particulars"].isin(sel_list_glAcc))]
             master.fetchData = master.fetchData.loc[(abs(master.fetchData["Amount"]) >= int(ipt_thresholdAmt.get()))]
             text_src.delete(1.0, END)
             text_src.insert(END, master.fetchData) #display dataframe in text
@@ -639,10 +661,10 @@ class Application(Frame):
         ipw.wm_title("Validate Input Parameters: Journal Entry Dates")
         #read gl and get max and min effective and entry dates
         glData = self.project.getGLData()
-        min_entry_dt = glData['Posting Date'].min()
-        max_entry_dt = glData['Posting Date'].max()
-        min_eff_dt = glData['Posting Date'].min()
-        max_eff_dt = glData['Posting Date'].max()
+        min_entry_dt = glData['Date'].min()
+        max_entry_dt = glData['Date'].max()
+        min_eff_dt = glData['Date'].min()
+        max_eff_dt = glData['Date'].max()
         columns = tuple(glData)
         #f1: left pane
         f1 = frame(ipw, LEFT)
@@ -790,13 +812,13 @@ class Application(Frame):
         f1 = frame(iadw, TOP)
         Label(f1, text="Review the order of all levels within the account hierarchy:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         accTree = ttk.Treeview(f1)
-        caData_subset = caData[['Account Category', 'Account Class', 'Account Subclass', 'GL Account no.']]
+        caData_subset = caData[['Account Category', 'Account Class', 'Account Subclass', 'Particulars']]
         df2 = pd.DataFrame({'Account Category': caData_subset['Account Category'].unique()})
         df2['Account Class'] = [list(set(caData_subset['Account Class'].loc[caData_subset['Account Category'] == x['Account Category']])) for _, x in df2.iterrows()]
         df3 = pd.DataFrame({'Account Class': caData_subset['Account Class'].unique()})
         df3['Account Subclass'] = [list(set(caData_subset['Account Subclass'].loc[caData_subset['Account Class'] == x['Account Class']])) for _, x in df3.iterrows()]
         df4 = pd.DataFrame({'Account Subclass': caData_subset['Account Subclass'].unique()})
-        df4['GL Account no.'] = [list(set(caData_subset['GL Account no.'].loc[caData_subset['Account Subclass'] == x['Account Subclass']])) for _, x in df4.iterrows()]
+        df4['Particulars'] = [list(set(caData_subset['Particulars'].loc[caData_subset['Account Subclass'] == x['Account Subclass']])) for _, x in df4.iterrows()]
         gi = 0
         for item in caData_subset['Account Category'].unique().tolist():
             if str(item) == 'nan':
@@ -808,7 +830,7 @@ class Application(Frame):
                     for it in df3['Account Subclass'].loc[df3['Account Class'] == x]:
                         for y in it:
                             accTree.insert('AccClass-'+x, 'end', 'AccSubclass-'+y, text=y)
-                            for i in df4['GL Account no.'].loc[df4['Account Subclass'] == y]:
+                            for i in df4['Particulars'].loc[df4['Account Subclass'] == y]:
                                 for z in i:
                                     gl_no = str(z)[:-3]
                                     accTree.insert('AccSubclass-'+y, 'end', 'AccGL-'+str(gi), text=gl_no)

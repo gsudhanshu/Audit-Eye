@@ -38,7 +38,6 @@ class Application(Frame):
             self.max_entry_dt = ''
             self.min_eff_dt = ''
             self.max_eff_dt = ''
-            self.jeField = ''
             self.JEvalidated = ''
             self.sys_man_entries = ''
             self.sysField = ''
@@ -92,16 +91,11 @@ class Application(Frame):
             return self.tbdata
         def getCAData(self):
             return self.cadata
-        def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField):
+        def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
             self.min_entry_dt = min_entry_dt
             self.max_entry_dt = max_entry_dt
             self.min_eff_dt = min_eff_dt
             self.max_eff_dt = max_eff_dt
-            self.jeField = jeField
-        def setJEField(self, jeField):
-            self.jeField = jeField
-        def getJEField(self):
-            return self.jeField
         def saveJEvalidated(self):
             self.JEvalidated = 'True'
         def setJEvalidated(self, JEvalidated):
@@ -280,7 +274,6 @@ class Application(Frame):
         pf.write("GLinputFile="+os.path.abspath(""+master.project.getProjectName()+"_gl")+"\n")
         pf.write("TBinputFile="+os.path.abspath(""+master.project.getProjectName()+"_tb")+"\n")
         pf.write("CAinputFile="+os.path.abspath(""+master.project.getProjectName()+"_ca")+"\n")
-        pf.write("JEField="+master.project.getJEField()+"\n")
         pf.write("JEvalidated="+master.project.getJEvalidated()+"\n")
         pf.write("sys_man_entries="+master.project.getsys_man_entries()+"\n")
         pf.write("sysField="+master.project.getsysField()+"\n")
@@ -300,8 +293,8 @@ class Application(Frame):
         pf.close()
 
     def cleanup(master):
-        master.project.setEntryEffDates('','','','','')
-        master.project.setJEvalidated('')
+        #master.project.setEntryEffDates('','','','','')
+        #master.project.setJEvalidated('')
         master.project.saveSys_Manual_fields('','',[])
         master.project.setAccDefvalidated('')
         master.project.setSourceInputF('')
@@ -578,6 +571,7 @@ class Application(Frame):
 
     def init_dashboard(self):
         self.l1.destroy()
+        self.status.set("")
         #f1: left pane
         f1 = frame(self.w, LEFT)
         Label(f1, text="Financial Statement Profiling", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -592,10 +586,10 @@ class Application(Frame):
         #f2: second pane
         f2 = frame(self.w, LEFT)
         Label(f2, text="Validation", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f2, text="Form 572: Data and Analytics delivery memo", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f2, text="JE Validation", bg="white", command=self.JEvalidate_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f2, text="Date Validation", bg="white", command=self.date_validation_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f2, text="Trial Balance Validation", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f2, text="Validation Results Summary", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f2, text="Trial Balance Roll-forward", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f2, text="Back Posting", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -650,15 +644,9 @@ class Application(Frame):
         lbl_status = Entry(self.w, textvariable=self.status, justify=LEFT, relief=RAISED)
         lbl_status.pack(side=BOTTOM, fill=BOTH, expand=YES, padx=5)
 
-    def input_parameters_window(self):
-        if self.project == None:
-            self.status.set("First Create Project or Load existing Project!")
-            return
-        elif self.project.getGLInputFile() == '' or self.project.getTBInputFile() == '' or self.project.getCAInputFile() == '':
-            self.status.set("First Upload Data Files. Select Tools -> Manage Data")
-            return        
+    def date_validation_window(self):
         ipw = Toplevel(self)
-        ipw.wm_title("Validate Input Parameters: Journal Entry Dates")
+        ipw.wm_title("Journal Entry Dates Validation")
         #read gl and get max and min effective and entry dates
         glData = self.project.getGLData()
         min_entry_dt = glData['Date'].min()
@@ -666,61 +654,59 @@ class Application(Frame):
         min_eff_dt = glData['Date'].min()
         max_eff_dt = glData['Date'].max()
         columns = tuple(glData)
+        f0 = frame(ipw, TOP)
         #f1: left pane
-        f1 = frame(ipw, LEFT)
+        f1 = frame(f0, LEFT)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        lbl_start_dt = Label(f1, text="Start Date:", relief=FLAT, anchor="w")
+        lbl_start_dt = Label(f1, text="Start Date:", relief=FLAT, anchor="e")
         lbl_start_dt.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        lbl_end_dt = Label(f1, text="End Date:", relief=FLAT, anchor="w")
+        lbl_end_dt = Label(f1, text="End Date:", relief=FLAT, anchor="e")
         lbl_end_dt.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1.pack(expand=YES, fill=BOTH)
         #f2: Center pane
-        f2 = frame(ipw, LEFT)
+        f2 = frame(f0, LEFT)
         Label(f2, text="Entry Date", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_start_entry = Label(f2, text=min_entry_dt, relief=SUNKEN)
         lbl_start_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_end_entry = Label(f2, text=max_entry_dt, relief=SUNKEN)
         lbl_end_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        lbl_end_entry = Label(f2, text="JE No. Field", relief=FLAT)
-        lbl_end_entry.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f2, text="Cancel", command=ipw.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f2.pack(expand=YES, fill=BOTH)
         #f3: Right pane
-        f3 = frame(ipw, LEFT)
+        f3 = frame(f0, LEFT)
         Label(f3, text="Effective Date", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_start_effective = Label(f3, text=min_eff_dt, relief=SUNKEN)
         lbl_start_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         lbl_end_effective = Label(f3, text=max_eff_dt, relief=SUNKEN)
         lbl_end_effective.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_jeField = ttk.Combobox(f3, values=columns)
-        ipt_jeField.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        def onOK(master):
-            if ipt_jeField.get() == '':
-                master.status.set("Please select JE No. Field")
-                return
-            else:
-                master.status.set("")
-            master.ipt_param_JEvalidate_window(master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, ipt_jeField.get())
-        Button(f3, text="Ok and Next", command=lambda: onOK(self)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f3.pack(expand=YES, fill=BOTH)
+        f0.pack(expand=YES, fill=BOTH)
+        #f4: Bottom pane
+        f4 = frame(ipw, BOTTOM)
+        def onOK(master):
+            #save entry and effective dates in project object
+            master.project.setEntryEffDates(min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt)
+            master.save_project_file()
+            ipw.destroy()
+        Button(f4, text="Ok", command=lambda: onOK(self)).pack(side=RIGHT, padx=10, pady=10)        
+        f4.pack(expand=YES, fill=BOTH)
+        Button(f4, text="Cancel", command=ipw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        #f5: Bottom pane
+        f5 = frame(ipw, BOTTOM)
+        Label(f5, text="Guidance: Audit team to review the start and end date of the data extracted (i.e. the date of \n   first and last transaction) in line with the audit period under consideration.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f5.pack(expand=YES, fill=BOTH)
 
-    def ipt_param_JEvalidate_window(self, master, ipw, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField):
-        #save entry and effective dates in project object
-        master.project.setEntryEffDates(min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt, jeField)
-        ipw.destroy()
-        #open next window
+    def JEvalidate_window(master):
+        #open window
         ipjw = Toplevel(master)
-        ipjw.wm_title("Validate Input Parameters: Journal Entries")
+        ipjw.wm_title("Journal Entries Validation")
         glData = master.project.getGLData()
-        #A. highlight more than 5 JE line items
-        glData_subset = glData[[jeField, 'Amount']]
-        countli_byJE = glData_subset.pivot_table(index=[jeField], aggfunc='count')
-        countli_byJE = countli_byJE.rename(columns = {'Amount':'Count'})
-        countli_byJE = countli_byJE.sort_values(by=['Count'], ascending=False)
+        #A. highlight high JE line item counts
+        glData_subset = glData[["JV Number", 'Amount']]
+        countli_byJE = glData_subset.pivot_table(index=["JV Number"], aggfunc='count')
+        countli_byJE = countli_byJE.rename(columns = {'Amount':'Line Item Count'})
+        countli_byJE = countli_byJE.sort_values(by=['Line Item Count'], ascending=False)
         f1 = frame(ipjw, TOP)
-        Label(f1, text="JE's with count of line items to check if multiple transactions within same JE").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Count of line items in each JE in descending order").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         jeli_text = Text(f1, height=10, width=80)
         jeli_text.insert(END, countli_byJE) #display dataframe in text
         jeli_scroll = Scrollbar(f1, command= jeli_text.yview)
@@ -728,13 +714,14 @@ class Application(Frame):
         jeli_text.pack(side=LEFT)
         jeli_scroll.pack(side=RIGHT, fill=Y)
         f1.pack(expand=YES, fill=BOTH)
-        f2 = frame(ipjw, TOP)
         #B. Unbalanced JEs
-        amount_by_JE = glData_subset.pivot_table(index=[jeField])
+        f2 = frame(ipjw, TOP)
+        amount_by_JE = glData_subset.pivot_table(index=["JV Number"])
         amount_by_JE = amount_by_JE.replace(0, np.nan)
         unbalancedJE = amount_by_JE.dropna(how='any', axis=1) 
         unbalancedJE = amount_by_JE.replace(np.nan, 0) #to be on safe side
-        Label(f2, text="Unbalanced JE's").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f2, text="Guidance: Audit team may want to analyze few JE's with high line item count \nto check for batch processing of entries.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f2, text="Unbalanced JE's: Displays the sum of amount per JE in descending order").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         jelist_text = Text(f2, height=10, width=80)
         jelist_text.insert(END, unbalancedJE) #display dataframe in text
         jelist_scroll = Scrollbar(f2, command= jelist_text.yview)
@@ -742,20 +729,28 @@ class Application(Frame):
         jelist_text.pack(side=LEFT)
         jelist_scroll.pack(side=RIGHT, fill=Y)
         f2.pack(expand=YES, fill=BOTH)
+        fmid = frame(ipjw, TOP)
+        Label(fmid, text="Guidance: If the amount is not zero for any JE, the audit team needs to \nre-validate the data from the client.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        fmid.pack(expand=YES, fill=BOTH)
         f3 = frame(ipjw, TOP)
         def onCancel(master, ipjw):
-            master.cleanup()
             ipjw.destroy()
         Button(f3, text="Cancel", command=lambda: onCancel(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
         def onApprove(master, ipjw):
             master.project.saveJEvalidated()
-            master.ipt_select_sysvalues_window(master, ipjw)
-        Button(f3, text="Approve and Next", command=lambda: onApprove(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+            master.save_project_file()
+            ipjw.destroy()
+        Button(f3, text="Ok", command=lambda: onApprove(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         f3.pack(expand=YES, fill=BOTH)
 
-    def ipt_select_sysvalues_window(self, master, ipjw):
-        ipjw.destroy()
-        ssw = Toplevel(master)
+    def ipt_select_sysvalues_window(self):
+        if self.project == None:
+            self.status.set("First Create Project or Load existing Project!")
+            return
+        elif self.project.getGLInputFile() == '' or self.project.getTBInputFile() == '' or self.project.getCAInputFile() == '':
+            self.status.set("First Upload Data Files. Select Tools -> Manage Data")
+            return        
+        ssw = Toplevel(self)
         ssw.wm_title("Validate Input Parameters: System / Manual entries")
         #read gl and get column list
         glData = self.project.getGLData()
@@ -774,9 +769,9 @@ class Application(Frame):
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=0, pady=0)
         def onCancel(master, ssw):
-            master.cleanup()
+            #master.cleanup()
             ssw.destroy()
-        Button(f1, text="Cancel", command=lambda: onCancel(master, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
+        Button(f1, text="Cancel", command=lambda: onCancel(self, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
         f1.pack(expand=YES, fill=BOTH)
         #f2: Center pane
         f2 = frame(ssw, LEFT)
@@ -799,7 +794,7 @@ class Application(Frame):
             selected_values = [ipt_sysValues.get(i) for i in ipt_sysValues.curselection()]
             master.project.saveSys_Manual_fields(ipt_entries.get(), ipt_sysField.get(), selected_values)
             master.ipt_acc_def_window(master, ssw)
-        Button(f2, text="Ok and Next", command=lambda: onOK(master, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
+        Button(f2, text="Ok and Next", command=lambda: onOK(self, ssw)).pack(side=BOTTOM, padx=10, pady=10)        
         f2.pack(expand=YES, fill=BOTH)
 
     def ipt_acc_def_window(self, master, ssw):
@@ -810,8 +805,12 @@ class Application(Frame):
         caData = master.project.getCAData()
         #f1: Top pane
         f1 = frame(iadw, TOP)
-        Label(f1, text="Review the order of all levels within the account hierarchy:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        accTree = ttk.Treeview(f1)
+        Label(f1, text="Displays the Chart of Accounts imported:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1.pack(expand=YES, fill=BOTH)
+        ftop = frame(iadw, TOP)
+        accTree = ttk.Treeview(ftop)
+        accT_scroll = Scrollbar(ftop, command= accTree.yview)
+        accTree.configure(yscrollcommand=accT_scroll.set)
         caData_subset = caData[['Account Category', 'Account Class', 'Account Subclass', 'Particulars']]
         df2 = pd.DataFrame({'Account Category': caData_subset['Account Category'].unique()})
         df2['Account Class'] = [list(set(caData_subset['Account Class'].loc[caData_subset['Account Category'] == x['Account Category']])) for _, x in df2.iterrows()]
@@ -835,8 +834,12 @@ class Application(Frame):
                                     gl_no = str(z)[:-3]
                                     accTree.insert('AccSubclass-'+y, 'end', 'AccGL-'+str(gi), text=gl_no)
                                     gi += 1
-        accTree.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        f1.pack(expand=YES, fill=BOTH)
+        accTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        accT_scroll.pack(side=RIGHT, fill=Y)
+        ftop.pack(expand=YES, fill=BOTH)
+        fmid = frame(iadw, TOP)
+        Label(fmid, text="Guidance: Audit team to review the mapping here.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        fmid.pack(expand=YES, fill=BOTH)
         #f2: Middle pane
         f2 = frame(iadw, TOP)
         def uploadNewCOA(master):
@@ -1265,8 +1268,6 @@ class Application(Frame):
             elif line[:11] == "CAinputFile":
                 inputFileSetFlag = 0
                 caInputFile = line[12:-1]
-            elif line[:7] == "JEField":
-                jeField = line[8:-1]
             elif line[:11] == "JEvalidated":
                 jeValidated = line[12:-1]
             elif line[:15] == "sys_man_entries":
@@ -1332,7 +1333,6 @@ class Application(Frame):
                 self.status.set("Missing Data Files... Select Tools -> Manage Data; and upload data files again.")
                 return
             else:
-                self.project.setJEField(jeField)
                 self.project.setJEvalidated(jeValidated)
                 self.project.saveSys_Manual_fields(sys_man_entries, sysField, sysValues)
                 self.project.setAccDefvalidated(AccDefValidated)
@@ -1364,7 +1364,7 @@ class Application(Frame):
         CmdBtn.menu.add_command(label="Configure", underline=0, state=DISABLED)#, command=configure)
         #CmdBtn.menu.entryconfig(0, state=DISABLED)
         CmdBtn.menu.add_command(label='Manage Data', underline=6, command=self.input_data_window)
-        CmdBtn.menu.add_command(label='Input Parameters', underline=0, command=self.input_parameters_window)
+        CmdBtn.menu.add_command(label='Input Parameters', underline=0, command=self.ipt_select_sysvalues_window)
         CmdBtn['menu'] = CmdBtn.menu
         return CmdBtn
 

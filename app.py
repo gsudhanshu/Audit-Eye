@@ -575,7 +575,7 @@ class Application(Frame):
         self.status.set("")
         #f1: left pane
         f1 = frame(self.w, LEFT)
-        Label(f1, text="Financial Statement Profiling", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Financial Statement Profiling", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f1, text="Analyze Balance Sheet", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f1, text="Analyze Income Statement", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Business Unit Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -586,7 +586,7 @@ class Application(Frame):
         f1.pack(expand=YES, fill=BOTH)
         #f2: second pane
         f2 = frame(self.w, LEFT)
-        Label(f2, text="Validation", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f2, text="Validation", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="JE Validation", bg="white", command=self.JEvalidate_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="Date Validation", bg="white", command=self.date_validation_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f2, text="Trial Balance Validation", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -597,7 +597,7 @@ class Application(Frame):
         f2.pack(expand=YES, fill=BOTH)
         #f3: third pane
         f3 = frame(self.w, LEFT)
-        Label(f3, text="Process Analysis", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f3, text="Process Analysis", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Process Map", bg="white", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Preparer Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -608,7 +608,7 @@ class Application(Frame):
         f3.pack(expand=YES, fill=BOTH)
         #f4: Last pane
         f4 = frame(self.w, LEFT)
-        Label(f4, text="Account and Journal Entry Analysis", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f4, text="Account and Journal Entry Analysis", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Relationship of 2 accounts", bg="white", command=self.relation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -628,83 +628,52 @@ class Application(Frame):
         pivotData = pd.pivot_table(jData, values='Amount', index=['Account Category','Particulars'], columns='Source', aggfunc=np.sum).reset_index()
         #f1: Top pane
         f1 = frame(pmw, TOP)
-        pivott = Table(f1, dataframe=pivotData, showtoolbar=True, showstatusbar=True)
+        pivott = Table(f1, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
         pivott.show()
         f1.pack(expand=YES, fill=BOTH)
         fmid = frame(pmw, TOP)
-        f2 = frame(fmid, LEFT)
-        Label(f2, text="Account Category").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        acc_cat_unique = jData['Account Category'].unique().tolist()
-        ipt_acc_cat = ttk.Combobox(f2, values=acc_cat_unique)
-        ipt_acc_cat.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        f2.pack(expand=YES, fill=BOTH)
-        f3 = frame(fmid, LEFT)
-        Label(f3, text="Particulars").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_particulars = ttk.Combobox(f3)
-        def accCatSelected(self):
-            if not ipt_acc_cat.get() == '':
-                #get unique values in column from jData
-                particulars_unique = jData.loc[(jData['Account Category'] == ipt_acc_cat.get())]['Particulars'].unique().tolist()
-                ipt_particulars.configure(values=particulars_unique)
-                pmw.update()
-        ipt_acc_cat.bind("<<ComboboxSelected>>", accCatSelected)
-        ipt_particulars.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        f3.pack(expand=YES, fill=BOTH)
-        f4 = frame(fmid, LEFT)
-        Label(f4, text="Source").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_source = ttk.Combobox(f4)
-        def particularsSelected(self):
-            if not ipt_particulars.get() == '':
-                #get unique values in column from jData
-                source_unique = jData.loc[(jData['Particulars'] == ipt_particulars.get())]['Source'].unique().tolist()
-                ipt_source.configure(values=source_unique)
-                pmw.update()
-        ipt_particulars.bind("<<ComboboxSelected>>", particularsSelected)
-        ipt_source.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        f4.pack(expand=YES, fill=BOTH)
-        f5 = frame(fmid, LEFT)
-        value = StringVar()
-        value.set("")
-        def sourceSelected(self):
-            if not ipt_source.get() == '':
-                temp = pivotData.loc[(pivotData['Account Category'] == ipt_acc_cat.get()) & (pivotData['Particulars'] == ipt_particulars.get())][ipt_source.get()]
-                value.set(str(temp))
-                pmw.update()
-        ipt_source.bind("<<ComboboxSelected>>", sourceSelected)
-        Entry(f5, textvariable=value, state='disabled').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         def showDetails():
+            col = pivott.getSelectedColumn()
+            row = pivott.getSelectedRow()
+            if col < 2:
+                return
+            if str(pivotData.iloc[row, col]) in ('NaN', 'nan', ''):
+                return
+            source = pivotData.columns[col]
+            acc_cat = pivotData.iloc[row, 0]
+            particulars = pivotData.iloc[row, 1]
             sdw = Toplevel(pmw)
             sdw.wm_title("Process Map Analysis: Details")
-            detailsData = glData.loc[(glData['Particulars'] == ipt_particulars.get()) & (glData['Source'] == ipt_source.get())]
+            detailsData = glData.loc[(glData['Particulars'] == particulars) & (glData['Source'] == source)]
             #fd1: Top pane
             fd1 = frame(sdw, TOP)
-            detailst = Table(fd1, dataframe=detailsData, showtoolbar=True, showstatusbar=True)
+            detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=True, showstatusbar=True)
             detailst.show()
             fd1.pack(expand=YES, fill=BOTH)
             fd2 = frame(sdw, TOP)
-            Label(fd2, text="JV Number:").pack(side=LEFT, padx=10, pady=10)
-            jv_nos = detailsData['JV Number'].unique().tolist()
-            ipt_jv_no = ttk.Combobox(fd2, values=jv_nos)
-            ipt_jv_no.pack(side=LEFT, padx=10, pady=10)
             def showJVDetails():
-                if not ipt_jv_no.get() == '': 
-                    sjdw = Toplevel(sdw)
-                    sjdw.wm_title("Process Map Analysis: JV Number Details")
-                    jvdetailsData = glData.loc[(glData['JV Number'] == int(ipt_jv_no.get()))]
-                    fj1 = frame(sjdw, TOP)
-                    pt = Table(fj1, dataframe=jvdetailsData, showtoolbar=True, showstatusbar=True)
-                    pt.show()
-                    fj1.pack(expand=YES, fill=BOTH)            
-                    fj2 = frame(sjdw, TOP)
-                    Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
-                    fj2.pack(expand=YES, fill=BOTH)            
-            Button(fd2, text="Details", command=showJVDetails).pack(side=LEFT, padx=10, pady=10)
+                coli = detailst.getSelectedColumn()
+                rowi = detailst.getSelectedRow()
+                if not coli == 1:
+                    return
+                if str(detailsData.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                    return
+                sjdw = Toplevel(sdw)
+                sjdw.wm_title("Process Map Analysis: JV Number Details")
+                jvdetailsData = glData.loc[(glData['JV Number'] == detailsData.iloc[rowi, coli])]
+                fj1 = frame(sjdw, TOP)
+                pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                pt.show()
+                fj1.pack(expand=YES, fill=BOTH)            
+                fj2 = frame(sjdw, TOP)
+                Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                fj2.pack(expand=YES, fill=BOTH)            
+            Button(fd2, text="Details", command=showJVDetails).pack(side=TOP, padx=10, pady=10)
             fd2.pack(expand=YES, fill=BOTH)
             fd3 = frame(sdw, TOP)
             Button(fd3, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=10)
             fd3.pack(expand=YES, fill=BOTH)
-        Button(f5, text="Details", command=showDetails).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        f5.pack(expand=YES, fill=BOTH)
+        Button(fmid, text="Details", command=showDetails).pack(side=TOP, padx=10, pady=10)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(pmw, TOP)
         Button(fbot, text="Done", command=pmw.destroy).pack(side=TOP, padx=10, pady=10)
@@ -714,6 +683,7 @@ class Application(Frame):
         pd.set_option('display.max_columns', None)
         pd.set_option('display.max_rows', None)
         pd.set_option('display.expand_frame_repr', False)
+        pd.options.display.float_format = '{:,.1f}'.format
         Frame.__init__(self)
         self.project=None
         self.status = StringVar()

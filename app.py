@@ -576,8 +576,8 @@ class Application(Frame):
         #f1: left pane
         f1 = frame(self.w, LEFT)
         Label(f1, text="Financial Statement Profiling", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f1, text="Analyze Balance Sheet", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f1, text="Analyze Income Statement", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f1, text="Analyze Balance Sheet", bg="white", command=self.balance_sheet_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f1, text="Analyze Income Statement", bg="white", command=self.income_statement_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Business Unit Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Financial Statement Tie-out", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Significant Accounts Identification", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -617,6 +617,96 @@ class Application(Frame):
         Button(f4, text="Additional Reports", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Custom Analytics - visualization", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f4.pack(expand=YES, fill=BOTH)
+
+    def balance_sheet_window(master):
+        bsw = Toplevel(master)
+        bsw.wm_title("Analyze Balance Sheet")
+        #create pivot
+        tbData = master.project.getTBData()
+        caData = master.project.getCAData()
+        jData = tbData.merge(caData, on=['Particulars'])
+        jData = jData.loc[(jData["Financial Statement Category"] == "Balance Sheet")]
+        pivotData = pd.pivot_table(jData, values='Closing Balance', index=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        #fmid: Middle pane
+        fmid = frame(bsw, TOP)
+        bsTree = ttk.Treeview(fmid)
+        bsT_scroll = Scrollbar(fmid, command= bsTree.yview)
+        bsTree.configure(yscrollcommand=bsT_scroll.set)
+        bsTree["columns"]=("A")
+        bsTree.column("A", width=200)
+        bsTree.heading("A", text="Closing Balance")
+        accType = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type'], aggfunc=np.sum).reset_index()
+        accCategory = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type', 'Account Category'], aggfunc=np.sum).reset_index()
+        accClass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Category', 'Account Class'], aggfunc=np.sum).reset_index()
+        accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
+        particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        for index, row in accType.iterrows():
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.1f}'.format(row['Closing Balance'])))
+            for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.1f}'.format(rowCat['Closing Balance'])))
+                for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.1f}'.format(rowClass['Closing Balance'])))
+                    for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
+                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.1f}'.format(rowSubClass['Closing Balance'])))
+                        for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
+                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.1f}'.format(rowPart['Closing Balance'])))
+        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        bsT_scroll.pack(side=RIGHT, fill=Y)
+        fmid.pack(expand=YES, fill=BOTH)
+        fbot = frame(bsw, TOP)
+        def table_view():
+            tvw = Toplevel(bsw)
+            tvw.wm_title("Analyze Balance Sheet: Table View")
+            pivott = Table(tvw, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+            pivott.show()
+        Button(fbot, text="Table View", command=table_view).pack(side=TOP, padx=10, pady=10)
+        Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
+        fbot.pack(expand=YES, fill=BOTH)
+
+    def income_statement_window(master):
+        bsw = Toplevel(master)
+        bsw.wm_title("Analyze Income Statement")
+        #create pivot
+        tbData = master.project.getTBData()
+        caData = master.project.getCAData()
+        jData = tbData.merge(caData, on=['Particulars'])
+        jData = jData.loc[(jData["Financial Statement Category"] == "P&L")]
+        pivotData = pd.pivot_table(jData, values='Closing Balance', index=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        #fmid: Middle pane
+        fmid = frame(bsw, TOP)
+        bsTree = ttk.Treeview(fmid)
+        bsT_scroll = Scrollbar(fmid, command= bsTree.yview)
+        bsTree.configure(yscrollcommand=bsT_scroll.set)
+        bsTree["columns"]=("A")
+        bsTree.column("A", width=200)
+        bsTree.heading("A", text="Amount")
+        accType = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type'], aggfunc=np.sum).reset_index()
+        accCategory = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type', 'Account Category'], aggfunc=np.sum).reset_index()
+        accClass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Category', 'Account Class'], aggfunc=np.sum).reset_index()
+        accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
+        particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        for index, row in accType.iterrows():
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.1f}'.format(row['Closing Balance'])))
+            for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.1f}'.format(rowCat['Closing Balance'])))
+                for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.1f}'.format(rowClass['Closing Balance'])))
+                    for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
+                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.1f}'.format(rowSubClass['Closing Balance'])))
+                        for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
+                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.1f}'.format(rowPart['Closing Balance'])))
+        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        bsT_scroll.pack(side=RIGHT, fill=Y)
+        fmid.pack(expand=YES, fill=BOTH)
+        fbot = frame(bsw, TOP)
+        def table_view():
+            tvw = Toplevel(bsw)
+            tvw.wm_title("Analyze Income Statement: Table View")
+            pivott = Table(tvw, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+            pivott.show()
+        Button(fbot, text="Table View", command=table_view).pack(side=TOP, padx=10, pady=10)
+        Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
+        fbot.pack(expand=YES, fill=BOTH)
 
     def process_map_window(master):
         pmw = Toplevel(master)

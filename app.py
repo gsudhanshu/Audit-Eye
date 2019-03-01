@@ -11,6 +11,7 @@ import numpy as np
 import unicodedata as uni
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from pandastable import Table
 
 def frame(root, side):
     w=Frame(root)
@@ -78,10 +79,10 @@ class Application(Frame):
             return self.caInputFile
         def setGLInputFile(self, glInputF):
             self.glInputFile = glInputF
-            self.gldata = pd.read_excel(glInputF, skiprows=3)
+            self.gldata = pd.read_excel(glInputF, skiprows=3, dtype={'Amount': np.int32})
         def setTBInputFile(self, tbInputF):
             self.tbInputFile = tbInputF
-            self.tbdata = pd.read_excel(tbInputF, skiprows=3)
+            self.tbdata = pd.read_excel(tbInputF, skiprows=3, dtype={'Amount': np.int32})
         def setCAInputFile(self, caInputF):
             self.caInputFile = caInputF
             self.cadata = pd.read_excel(caInputF, skiprows=3)
@@ -307,7 +308,7 @@ class Application(Frame):
             os.chdir('..')
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
-    def correlation_2acc(self):
+    def relation_2acc(self):
         c2aw = Toplevel(self)
         c2aw.wm_title("Correlation Analysis of 2 Accounts")
         caData = self.project.getCAData()
@@ -597,7 +598,7 @@ class Application(Frame):
         #f3: third pane
         f3 = frame(self.w, LEFT)
         Label(f3, text="Process Analysis", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f3, text="Process Map", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f3, text="Process Map", bg="white", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Preparer Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Identify and Understand Booking Patterns", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -608,9 +609,9 @@ class Application(Frame):
         #f4: Last pane
         f4 = frame(self.w, LEFT)
         Label(f4, text="Account and Journal Entry Analysis", bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f4, text="Analyze Correlation b/w 2 accounts", bg="white", command=self.correlation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f4, text="Analyze Relationship of 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f4, text="Analyze Correlation b/w 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Analyze Relationship of 2 accounts", bg="white", command=self.relation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Gross Margin Analysis", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Cutoff Analysis of GL accounts", bg="white", command=self.cutoff_analysis).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Additional Reports", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -627,15 +628,8 @@ class Application(Frame):
         pivotData = pd.pivot_table(jData, values='Amount', index=['Account Category','Particulars'], columns='Source', aggfunc=np.sum).reset_index()
         #f1: Top pane
         f1 = frame(pmw, TOP)
-        xscroll = Scrollbar(f1, orient=HORIZONTAL)
-        yscroll = Scrollbar(f1)
-        pm_text = Text(f1, wrap="none", height=20, width=150, xscrollcommand=xscroll.set, yscrollcommand=yscroll.set)
-        pm_text.insert(END, pivotData)
-        xscroll.config(command=pm_text.xview)
-        yscroll.config(command=pm_text.yview)
-        xscroll.pack(side=BOTTOM, fill=X)        
-        yscroll.pack(side=RIGHT, fill=Y)
-        pm_text.pack()
+        pivott = Table(f1, dataframe=pivotData, showtoolbar=True, showstatusbar=True)
+        pivott.show()
         f1.pack(expand=YES, fill=BOTH)
         fmid = frame(pmw, TOP)
         f2 = frame(fmid, LEFT)
@@ -684,15 +678,8 @@ class Application(Frame):
             detailsData = glData.loc[(glData['Particulars'] == ipt_particulars.get()) & (glData['Source'] == ipt_source.get())]
             #fd1: Top pane
             fd1 = frame(sdw, TOP)
-            xdscroll = Scrollbar(fd1, orient=HORIZONTAL)
-            ydscroll = Scrollbar(fd1)
-            sd_text = Text(fd1, wrap="none", height=10, width=120, xscrollcommand=xdscroll.set, yscrollcommand=ydscroll.set)
-            sd_text.insert(END, detailsData)
-            xdscroll.config(command=sd_text.xview)
-            ydscroll.config(command=sd_text.yview)
-            xdscroll.pack(side=BOTTOM, fill=X)        
-            ydscroll.pack(side=RIGHT, fill=Y)
-            sd_text.pack()
+            detailst = Table(fd1, dataframe=detailsData, showtoolbar=True, showstatusbar=True)
+            detailst.show()
             fd1.pack(expand=YES, fill=BOTH)
             fd2 = frame(sdw, TOP)
             Label(fd2, text="JV Number:").pack(side=LEFT, padx=10, pady=10)
@@ -704,18 +691,10 @@ class Application(Frame):
                     sjdw = Toplevel(sdw)
                     sjdw.wm_title("Process Map Analysis: JV Number Details")
                     jvdetailsData = glData.loc[(glData['JV Number'] == int(ipt_jv_no.get()))]
-                    #fd1: Top pane
                     fj1 = frame(sjdw, TOP)
-                    xjscroll = Scrollbar(fj1, orient=HORIZONTAL)
-                    yjscroll = Scrollbar(fj1)
-                    sj_text = Text(fj1, wrap="none", height=10, width=120, xscrollcommand=xjscroll.set, yscrollcommand=yjscroll.set)
-                    sj_text.insert(END, jvdetailsData)
-                    xjscroll.config(command=sj_text.xview)
-                    yjscroll.config(command=sj_text.yview)
-                    xjscroll.pack(side=BOTTOM, fill=X)        
-                    yjscroll.pack(side=RIGHT, fill=Y)
-                    sj_text.pack()
-                    fj1.pack(expand=YES, fill=BOTH)
+                    pt = Table(fj1, dataframe=jvdetailsData, showtoolbar=True, showstatusbar=True)
+                    pt.show()
+                    fj1.pack(expand=YES, fill=BOTH)            
                     fj2 = frame(sjdw, TOP)
                     Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
                     fj2.pack(expand=YES, fill=BOTH)            

@@ -642,15 +642,15 @@ class Application(Frame):
         accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
         particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
         for index, row in accType.iterrows():
-            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.1f}'.format(row['Closing Balance'])))
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])))
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
-                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.1f}'.format(rowCat['Closing Balance'])))
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])))
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
-                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.1f}'.format(rowClass['Closing Balance'])))
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])))
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
-                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.1f}'.format(rowSubClass['Closing Balance'])))
+                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
-                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.1f}'.format(rowPart['Closing Balance'])))
+                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
         bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
@@ -688,15 +688,15 @@ class Application(Frame):
         accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
         particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
         for index, row in accType.iterrows():
-            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.1f}'.format(row['Closing Balance'])))
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])))
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
-                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.1f}'.format(rowCat['Closing Balance'])))
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])))
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
-                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.1f}'.format(rowClass['Closing Balance'])))
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])))
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
-                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.1f}'.format(rowSubClass['Closing Balance'])))
+                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
-                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.1f}'.format(rowPart['Closing Balance'])))
+                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
         bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
@@ -788,7 +788,7 @@ class Application(Frame):
         pd.set_option('display.max_columns', None)
         pd.set_option('display.max_rows', None)
         pd.set_option('display.expand_frame_repr', False)
-        pd.options.display.float_format = '{:,.1f}'.format
+        pd.options.display.float_format = '{:,.0f}'.format
         Frame.__init__(self)
         self.project=None
         self.status = StringVar()
@@ -796,6 +796,7 @@ class Application(Frame):
         self.pack(expand=YES, fill=BOTH)
         self.master.title('DA Analyze')
         self.master.iconname("DA")
+        self.master.resizable(0,0)
         mBar = Frame(self, relief=RAISED, borderwidth=2)
         mBar.pack(fill=X)
         fileBtn = self.makeFileMenu(mBar)
@@ -1078,7 +1079,7 @@ class Application(Frame):
     def ipt_upload_preparer_window(self, master, iusw):
         iusw.destroy()
         iupw = Toplevel(master)
-        iupw.wm_title("Validate Input Parameters: Source")
+        iupw.wm_title("Validate Input Parameters: Preparer")
         #f1: Top pane
         f1 = frame(iupw, TOP)
         Label(f1, text="Verify that preparer file has following fields: UserName, FullName, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)

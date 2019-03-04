@@ -1,5 +1,5 @@
 from Tkinter import *
-import pandas as pd
+import pandas as pd #v 0.23.4
 from PIL import ImageTk, Image
 from tkFileDialog import askopenfilename
 from tkFileDialog import asksaveasfilename
@@ -79,10 +79,10 @@ class Application(Frame):
             return self.caInputFile
         def setGLInputFile(self, glInputF):
             self.glInputFile = glInputF
-            self.gldata = pd.read_excel(glInputF, skiprows=3, dtype={'Amount': np.int32})
+            self.gldata = pd.read_excel(glInputF, skiprows=3)
         def setTBInputFile(self, tbInputF):
             self.tbInputFile = tbInputF
-            self.tbdata = pd.read_excel(tbInputF, skiprows=3, dtype={'Amount': np.int32})
+            self.tbdata = pd.read_excel(tbInputF, skiprows=3)
         def setCAInputFile(self, caInputF):
             self.caInputFile = caInputF
             self.cadata = pd.read_excel(caInputF, skiprows=3)
@@ -620,6 +620,7 @@ class Application(Frame):
 
     def balance_sheet_window(master):
         bsw = Toplevel(master)
+        bsw.geometry('800x350')
         bsw.wm_title("Analyze Balance Sheet")
         #create pivot
         tbData = master.project.getTBData()
@@ -665,6 +666,7 @@ class Application(Frame):
 
     def income_statement_window(master):
         bsw = Toplevel(master)
+        bsw.geometry('800x350')
         bsw.wm_title("Analyze Income Statement")
         #create pivot
         tbData = master.project.getTBData()
@@ -708,6 +710,12 @@ class Application(Frame):
         Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
         fbot.pack(expand=YES, fill=BOTH)
 
+    def format(self, x):
+        if str(x) in ('NaN','nan', ''):
+            return None
+        else:
+            return '{:,.0f}'.format(x)
+
     def process_map_window(master):
         pmw = Toplevel(master)
         pmw.wm_title("Process Map Analysis")
@@ -716,6 +724,11 @@ class Application(Frame):
         caData = master.project.getCAData()
         jData = glData.merge(caData, on=['Particulars'])
         pivotData = pd.pivot_table(jData, values='Amount', index=['Account Category','Particulars'], columns='Source', aggfunc=np.sum).reset_index()
+        i = 0
+        for col in tuple(pivotData):
+            if i > 1:
+                pivotData[col] = pivotData[col].map(master.format)
+            i=i+1
         #f1: Top pane
         f1 = frame(pmw, TOP)
         pivott = Table(f1, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
@@ -735,6 +748,7 @@ class Application(Frame):
             sdw = Toplevel(pmw)
             sdw.wm_title("Process Map Analysis: Details")
             detailsData = glData.loc[(glData['Particulars'] == particulars) & (glData['Source'] == source)]
+            detailsData['Amount'] = detailsData['Amount'].map(master.format)
             #fd1: Top pane
             fd1 = frame(sdw, TOP)
             detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=True, showstatusbar=True)
@@ -751,6 +765,7 @@ class Application(Frame):
                 sjdw = Toplevel(sdw)
                 sjdw.wm_title("Process Map Analysis: JV Number Details")
                 jvdetailsData = glData.loc[(glData['JV Number'] == detailsData.iloc[rowi, coli])]
+                jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
                 fj1 = frame(sjdw, TOP)
                 pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
                 pt.show()

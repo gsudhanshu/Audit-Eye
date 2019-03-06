@@ -589,7 +589,7 @@ class Application(Frame):
         Label(f2, text="Validation", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="JE Validation", bg="white", command=self.JEvalidate_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="Date Validation", bg="white", command=self.date_validation_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f2, text="Trial Balance Validation", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f2, text="Trial Balance Validation", bg="white", command=self.tb_validation_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f2, text="Validation Results Summary", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -618,6 +618,53 @@ class Application(Frame):
         Button(f4, text="Custom Analytics - visualization", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f4.pack(expand=YES, fill=BOTH)
 
+    def tb_validation_window(master):
+        tvw = Toplevel(master)
+        tvw.wm_title("Trial Balance Validation: Total of Trial Balance")
+        tbData = master.project.getTBData()
+        total = '{:,.0f}'.format(tbData['Closing Balance'].sum())
+        tbData['Opening Balance'] = tbData['Opening Balance'].map(master.format)
+        tbData['Debit'] = tbData['Debit'].map(master.format)
+        tbData['Credit'] = tbData['Credit'].map(master.format)
+        tbData['Closing Balance'] = tbData['Closing Balance'].map(master.format)
+        ftop = frame(tvw, TOP)
+        tbt = Table(ftop, dataframe=tbData, width=800, height=21, showtoolbar=True, showstatusbar=True)
+        tbt.show()
+        fmid = frame(tvw, TOP)
+        Label(fmid, text="Total of Trial Balance: "+total, font='Helvetica 12 bold').pack(side=TOP, padx=10, pady=10)
+        fbot = frame(tvw, TOP)
+        Button(fbot, text="Ok and Next", command=lambda: master.tb_rollforward_window(tvw)).pack(side=RIGHT, padx=10, pady=10)        
+        Button(fbot, text="Cancel", command=tvw.destroy).pack(side=RIGHT, padx=10, pady=10)
+
+    def tb_rollforward_window(master, tvw):
+        tvw.destroy()
+        trw = Toplevel(master)
+        trw.wm_title("Trial Balance Validation: Trial Balance rollforward")
+        tData = master.project.getTBData()
+        gData = master.project.getGLData()
+        jData = tData.merge(gData, on=['Particulars'])
+        jData['Opening Balance'] = jData['Opening Balance'].map(master.format)
+        jData['Closing Balance'] = jData['Closing Balance'].map(master.format)
+        jData.fillna(value=0, inplace=True)
+        jData['Opening Balance'] = jData['Opening Balance'].str.replace(',', '').astype(float)
+        jData['Closing Balance'] = jData['Closing Balance'].str.replace(',', '').astype(float)
+        jData['Difference'] = jData.apply(lambda row: row['Opening Balance'] + row['Amount'] - row['Closing Balance'], axis=1)
+        jData_dsp = jData[['Particulars', 'Opening Balance', 'Amount', 'Closing Balance', 'Difference']]
+        jData_dsp = jData_dsp.rename(columns = {'Amount':'Movement'})
+        i = 0
+        for col in tuple(jData_dsp):
+            if i > 0:
+                jData_dsp[col] = jData_dsp[col].map(master.format)
+            i=i+1
+        ftop = frame(trw, TOP)
+        tbt = Table(ftop, dataframe=jData_dsp, width=600, height=21, showtoolbar=True, showstatusbar=True)
+        tbt.show()
+        fmid = frame(trw, TOP)
+        Label(fmid, text="Guidance: Audit team to analyze differences noted in the roll forward report.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        fbot = frame(trw, TOP)
+        Button(fbot, text="Done", command=trw.destroy).pack(side=RIGHT, padx=10, pady=10)        
+        Button(fbot, text="Export Report", command=trw.destroy).pack(side=RIGHT, padx=10, pady=10)
+
     def balance_sheet_window(master):
         bsw = Toplevel(master)
         bsw.geometry('800x350')
@@ -642,11 +689,11 @@ class Application(Frame):
         accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
         particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
         for index, row in accType.iterrows():
-            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])))
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])), open=True)
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
-                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])))
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])), open=True)
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
-                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])))
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])), open=True)
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
                         bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
@@ -688,11 +735,11 @@ class Application(Frame):
         accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
         particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
         for index, row in accType.iterrows():
-            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])))
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])), open=True)
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
-                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])))
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])), open=True)
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
-                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])))
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])), open=True)
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
                         bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
@@ -712,7 +759,11 @@ class Application(Frame):
 
     def format(self, x):
         if str(x) in ('NaN','nan', ''):
-            return None
+            return '0'
+        elif type(x) == str:
+            return x
+        elif x == None:
+            return '0'
         else:
             return '{:,.0f}'.format(x)
 

@@ -419,15 +419,17 @@ class Application(Frame):
                 master.status.set("Select Account A and Account B and name them!")
                 return
             gw = Toplevel(c2aw)
-            gw.wm_title("Correlation Analysis")
+            gw.wm_title("Relationship Analysis of 2 Accounts")
             graphF = frame(gw, TOP)
             accAData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
             Data = accAData[['Date', 'Amount']]
             Data = Data.groupby(Data.Date.dt.to_period("M")).sum()
+            Data['Amount'] = Data['Amount'].map(lambda x: abs(x))
             Data = Data.rename(columns = {'Amount':ipt_accA_name.get()})
             accBData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
             Data1 = accBData[['Date', 'Amount']]
             Data1 = Data1.groupby(Data1.Date.dt.to_period("M")).sum()
+            Data1['Amount'] = Data1['Amount'].map(lambda x: abs(x))
             Data1 = Data1.rename(columns = {'Amount':ipt_accB_name.get()})
             df = pd.merge(Data, Data1, on=['Date'])
             figure = plt.Figure(figsize=(5,4), dpi=100)

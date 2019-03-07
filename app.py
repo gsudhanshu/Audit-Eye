@@ -308,9 +308,93 @@ class Application(Frame):
             os.chdir('..')
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
-    def relation_2acc(self):
+    def correlation_2acc(self):
         c2aw = Toplevel(self)
         c2aw.wm_title("Correlation Analysis of 2 Accounts")
+        caData = self.project.getCAData()
+        glData = self.project.getGLData()
+        #ftop: Top Pane
+        ftop = frame(c2aw, TOP)
+        Label(ftop, text="Set name of Group 'A' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accA_name = Entry(ftop, relief=SUNKEN)
+        ipt_accA_name.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmid = frame(c2aw, TOP)
+        f1 = frame(fmid, LEFT)
+        ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
+        acc_categories = caData['Account Category'].unique().tolist()
+        for s in acc_categories:
+            if str(s) != 'nan':
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, pady=10)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        f2 = frame(fmid, LEFT)
+        ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, pady=10)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        f3 = frame(fmid, LEFT)
+        ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        f4 = frame(fmid, LEFT)
+        ipt_glAcc = Listbox(f4,selectmode='multiple', exportselection=False)
+        scroll_glAcc = Scrollbar(f4, orient=VERTICAL, command=ipt_glAcc.yview)
+        ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        scroll_glAcc.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        def accSubclassSelectionChange(evt):
+            ipt_glAcc.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclass))]
+                particulars = tempData['Particulars'].unique().tolist()
+                for s in particulars:
+                    ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAcc.select_set(0, END)
+        ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
+
+    def relation_2acc(self):
+        c2aw = Toplevel(self)
+        c2aw.wm_title("Relationship Analysis of 2 Accounts")
         caData = self.project.getCAData()
         glData = self.project.getGLData()
         acc_categories = caData['Account Category'].unique().tolist()
@@ -419,7 +503,7 @@ class Application(Frame):
                 master.status.set("Select Account A and Account B and name them!")
                 return
             gw = Toplevel(c2aw)
-            gw.wm_title("Relationship Analysis of 2 Accounts")
+            gw.wm_title("Relationship Analysis Graph")
             graphF = frame(gw, TOP)
             accAData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
             Data = accAData[['Date', 'Amount']]
@@ -611,7 +695,7 @@ class Application(Frame):
         #f4: Last pane
         f4 = frame(self.w, LEFT)
         Label(f4, text="Account and Journal Entry Analysis", bg="black", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f4, text="Analyze Correlation b/w 2 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Analyze Correlation b/w 2 accounts", bg="white", command=self.correlation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 3 accounts", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Relationship of 2 accounts", bg="white", command=self.relation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Gross Margin Analysis", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        

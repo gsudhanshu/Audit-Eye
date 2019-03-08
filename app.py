@@ -15,7 +15,7 @@ from pandastable import Table
 
 def frame(root, side):
     w=Frame(root)
-    w.pack(side=side, expand=YES, fill=BOTH)
+    w.pack(side=side, expand=YES, fill=BOTH, padx=2, pady=2)
     return w
 
 class Application(Frame):
@@ -313,14 +313,17 @@ class Application(Frame):
         c2aw.wm_title("Correlation Analysis of 2 Accounts")
         caData = self.project.getCAData()
         glData = self.project.getGLData()
+        tbData = self.project.getTBData()
         #ftop: Top Pane
         ftop = frame(c2aw, TOP)
-        Label(ftop, text="Set name of Group 'A' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(ftop, text="Set name of Group 'A' Account:", relief=FLAT, anchor='e').pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         ipt_accA_name = Entry(ftop, relief=SUNKEN)
-        ipt_accA_name.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accA_name.pack(side=LEFT, padx=10, pady=10)
+        Label(ftop, text="", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         #fmid: Listboxes
         fmid = frame(c2aw, TOP)
         f1 = frame(fmid, LEFT)
+        Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
         ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
         scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
         ipt_accCat.config(yscrollcommand=scroll_accCat.set)
@@ -328,25 +331,28 @@ class Application(Frame):
         for s in acc_categories:
             if str(s) != 'nan':
                 ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
-        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, pady=10)
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
         scroll_accCat.pack(side=RIGHT, fill=Y)
         f2 = frame(fmid, LEFT)
+        Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
         ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
         scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
         ipt_accClass.config(yscrollcommand=scroll_accClass.set)
-        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, pady=10)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
         scroll_accClass.pack(side=RIGHT, fill=Y)
         f3 = frame(fmid, LEFT)
+        Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
         ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
         scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
         ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
-        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
         scroll_accSubclass.pack(side=RIGHT, fill=Y)
         f4 = frame(fmid, LEFT)
+        Label(f4, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
         ipt_glAcc = Listbox(f4,selectmode='multiple', exportselection=False)
         scroll_glAcc = Scrollbar(f4, orient=VERTICAL, command=ipt_glAcc.yview)
         ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
-        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES)
         scroll_glAcc.pack(side=RIGHT, fill=Y)
         def accCatSelectionChange(evt):
             ipt_accClass.delete(0, END)
@@ -391,6 +397,213 @@ class Application(Frame):
                     ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
                 ipt_glAcc.select_set(0, END)
         ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
+        #Account B
+        ftopB = frame(c2aw, TOP)
+        Label(ftopB, text="Set name of Group 'B' Account:", relief=FLAT, anchor='e').pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accB_name = Entry(ftopB, relief=SUNKEN)
+        ipt_accB_name.pack(side=LEFT, padx=10, pady=10)
+        Label(ftopB, text="", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmidB = frame(c2aw, TOP)
+        f1B = frame(fmidB, LEFT)
+        Label(f1B, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCatB = Listbox(f1B,selectmode='multiple', exportselection=False)
+        scroll_accCatB = Scrollbar(f1B, orient=VERTICAL, command=ipt_accCatB.yview)
+        ipt_accCatB.config(yscrollcommand=scroll_accCatB.set)
+        acc_categoriesB = caData['Account Category'].unique().tolist()
+        for s in acc_categoriesB:
+            if str(s) != 'nan':
+                ipt_accCatB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCatB.pack(side=RIGHT, fill=Y)
+        f2B = frame(fmidB, LEFT)
+        Label(f2B, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClassB = Listbox(f2B,selectmode='multiple', exportselection=False)
+        scroll_accClassB = Scrollbar(f2B, orient=VERTICAL, command=ipt_accClassB.yview)
+        ipt_accClassB.config(yscrollcommand=scroll_accClassB.set)
+        ipt_accClassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClassB.pack(side=RIGHT, fill=Y)
+        f3B = frame(fmidB, LEFT)
+        Label(f3B, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclassB = Listbox(f3B,selectmode='multiple', exportselection=False)
+        scroll_accSubclassB = Scrollbar(f3B, orient=VERTICAL, command=ipt_accSubclassB.yview)
+        ipt_accSubclassB.config(yscrollcommand=scroll_accSubclassB.set)
+        ipt_accSubclassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclassB.pack(side=RIGHT, fill=Y)
+        f4B = frame(fmidB, LEFT)
+        Label(f4B, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAccB = Listbox(f4B,selectmode='multiple', exportselection=False)
+        scroll_glAccB = Scrollbar(f4B, orient=VERTICAL, command=ipt_glAccB.yview)
+        ipt_glAccB.config(yscrollcommand=scroll_glAccB.set)
+        ipt_glAccB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAccB.pack(side=RIGHT, fill=Y)
+        def accCatBSelectionChange(evt):
+            ipt_accClassB.delete(0, END)
+            w = evt.widget
+            sel_list_accCatB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCatB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCatB))]
+                acc_classesB = tempData['Account Class'].unique().tolist()
+                for s in acc_classesB:
+                    ipt_accClassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.bind('<<ListboxSelect>>', accCatBSelectionChange)
+        def accClassBSelectionChange(evt):
+            ipt_accSubclassB.delete(0, END)
+            w = evt.widget
+            sel_list_accClassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClassB))]
+                acc_subclassesB = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclassesB:
+                    ipt_accSubclassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClassB.bind('<<ListboxSelect>>', accClassBSelectionChange)
+        def accSubclassBSelectionChange(evt):
+            ipt_glAccB.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclassB))]
+                particularsB = tempData['Particulars'].unique().tolist()
+                for s in particularsB:
+                    ipt_glAccB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAccB.select_set(0, END)
+        ipt_accSubclassB.bind('<<ListboxSelect>>', accSubclassBSelectionChange)
+        def generateCorrAnalysis(master):
+            sel_list_glAccA = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAccA.append(ipt_glAcc.get(i))
+            sel_list_glAccB = []
+            for i in ipt_glAccB.curselection():
+                sel_list_glAccB.append(ipt_glAccB.get(i))
+            if sel_list_glAccA == [] or sel_list_glAccB == [] or ipt_accB_name.get() == "" or ipt_accA_name.get() == "":
+                master.status.set("Select Account A and Account B, and set their names properly!")
+                return
+            def value(row, l):
+                if row['Particulars'] in l:
+                    return True
+                else:
+                    return False
+            gw = Toplevel(c2aw)
+            gw.wm_title("Correlation Analysis")
+            tbAData = tbData.loc[(tbData['Particulars'].isin(sel_list_glAccA))]
+            tempAData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
+            jvnoA = tempAData['JV Number'].unique().tolist()
+            tempAData = glData.loc[(glData["JV Number"].isin(jvnoA))]
+            tempAData = tempAData.loc[(~tempAData["Particulars"].isin(sel_list_glAccA))]
+            tempAData['In_Account_B'] = tempAData.apply(lambda row: value(row, sel_list_glAccB), axis = 1)
+            tempAData = tempAData.groupby(['In_Account_B', 'Date']).aggregate({'Amount': np.sum}).reset_index()
+            tempAData = pd.pivot_table(tempAData, values='Amount', index=['Date'], columns='In_Account_B', aggfunc=np.sum).reset_index()
+            #tempAData = tempAData.groupby(tempAData.Date.dt.to_period('M')).sum().reset_index()
+            tbBData = tbData.loc[(tbData['Particulars'].isin(sel_list_glAccB))]
+            tempBData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
+            jvnoB = tempBData['JV Number'].unique().tolist()
+            tempBData = glData.loc[(glData["JV Number"].isin(jvnoB))]
+            tempBData = tempBData.loc[(~tempBData["Particulars"].isin(sel_list_glAccB))]
+            tempBData['In_Account_A'] = tempBData.apply(lambda row: value(row, sel_list_glAccA), axis = 1)
+            tempBData = tempBData.groupby(['In_Account_A', 'Date']).aggregate({'Amount': np.sum}).reset_index()
+            tempBData = pd.pivot_table(tempBData, values='Amount', index=['Date'], columns='In_Account_A', aggfunc=np.sum).reset_index()
+            #tempBData = tempBData.groupby(tempBData.Date.dt.to_period('M')).sum().reset_index()
+            ftop = frame(gw, TOP)
+            fg1 = frame(ftop, LEFT)
+            Label(fg1, text="Composition of "+ipt_accA_name.get()+" activity (Primary) \n\n", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="Opening Balance (n.a. for income statement)", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="B - activity posting to "+ipt_accB_name.get()+" >>", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="A - activity not posting to "+ipt_accB_name.get()+" >>", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="Closing Balance", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="Unallocated Difference", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            fg2 = frame(ftop, LEFT)
+            Label(fg2, text="Audit Period\n"+master.project.getFYend()+"\n------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tbAData['Opening Balance'].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tempAData[1].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tempAData[0].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tbAData['Closing Balance'].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tbAData['Closing Balance'].sum()-tbAData['Opening Balance'].sum()+tempAData[1].sum()+tempAData[0].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            fg3 = frame(ftop, LEFT)
+            Label(fg3, text=" \n \n", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text="Correlation", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text="difference", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text='{:,.0f}'.format((tempAData[1].sum() - tempBData[1].sum())*100/tempAData[1].sum())+"%", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            fg4 = frame(ftop, LEFT)
+            Label(fg4, text="Composition of "+ipt_accB_name.get()+" activity (Secondary)\n\n", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="Opening Balance (n.a. for income statement)", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="B - activity posting to "+ipt_accA_name.get()+" >>", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="C - activity not posting to "+ipt_accA_name.get()+" >>", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="Closing Balance", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg4, text="Unallocated Difference", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            fg5 = frame(ftop, LEFT)
+            Label(fg5, text="Audit Period\n"+master.project.getFYend()+"\n------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tbBData['Opening Balance'].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tempBData[1].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tempBData[0].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tbBData['Closing Balance'].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text="---------------", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tbBData['Closing Balance'].sum()-tbBData['Opening Balance'].sum()+tempBData[1].sum()+tempBData[0].sum()), relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            graphF = frame(gw, TOP)
+            Data0 = pd.DataFrame()
+            Data1 = pd.DataFrame()
+            Data2 = pd.DataFrame()
+            Data0['Date'] = tempAData['Date']
+            Data0['B - '+ipt_accA_name.get()+' activity posting to '+ipt_accB_name.get()] = tempAData[1].map(lambda x: abs(x))
+            Data0['B - '+ipt_accB_name.get()+' activity posting to '+ipt_accA_name.get()] = tempBData[1].map(lambda x: abs(x))
+            Data0['A - '+ipt_accA_name.get()+' activity not posting to '+ipt_accB_name.get()] = tempAData[0].map(lambda x: abs(x))
+            Data0 = Data0.groupby(Data0.Date.dt.to_period("M")).sum().reset_index()
+            figure = plt.Figure(figsize=(3,2), dpi=100)
+            ax = figure.add_subplot(111)
+            bar = FigureCanvasTkAgg(figure, graphF)
+            bar.get_tk_widget().pack(side=TOP, fill=BOTH)
+            Data0.plot.bar(stacked=False, legend=True, ax=ax)
+            ax.set_title(ipt_accA_name.get()+' Vs. '+ipt_accB_name.get())
+            os.chdir('images')
+            figure.savefig('myplot.png')
+            os.chdir('..')
+            tableF = frame(gw, TOP)
+            i=0
+            for col in tuple(Data0):
+                if not i == 0:
+                    Data0[col] = Data0[col].map(master.format)
+                i = i+1
+            pt = Table(tableF, dataframe=Data0, width=400, height=100, showtoolbar=False, showstatusbar=False)
+            pt.show()
+            buttonF = frame(gw, BOTTOM)
+            def export_to_excel(df):
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                df.to_excel(writer, sheet_name='Sheet1')
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
+                os.chdir('images')
+                worksheet.insert_image('B6', 'myplot.png')
+                writer.save()
+                os.chdir('..')
+            Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(Data0)).pack(side=TOP, padx=10, pady=10)
+        fbot0 = frame(c2aw, TOP)
+        Button(fbot0, text="Correlation Analysis", command=lambda: generateCorrAnalysis(self)).pack(side=TOP)
+        fbot1 = frame(c2aw, TOP)
+        Button(fbot1, text="Done", command=c2aw.destroy).pack(side=RIGHT, padx=10)
+        Button(fbot1, text="Cancel", command=c2aw.destroy).pack(side=RIGHT, padx=10)
 
     def relation_2acc(self):
         c2aw = Toplevel(self)
@@ -548,7 +761,7 @@ class Application(Frame):
                 os.chdir('..')
             Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(df)).pack(side=TOP, padx=10, pady=10)
             buttonF.pack(expand=YES, fill=BOTH)
-        Button(f3, text="Generate Correlation Graph", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
+        Button(f3, text="Generate Relationship Graph", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
         f3.pack(expand=YES, fill=BOTH)
         #f4: Bottom pane
         f4 = frame(c2aw, BOTTOM)
@@ -708,7 +921,7 @@ class Application(Frame):
         tvw = Toplevel(master)
         tvw.wm_title("Trial Balance Validation: Total of Trial Balance")
         tbData = master.project.getTBData()
-        total = '{:,.0f}'.format(tbData['Closing Balance'].sum())
+        total = tbData['Closing Balance'].sum()
         tbData['Opening Balance'] = tbData['Opening Balance'].map(master.format)
         tbData['Debit'] = tbData['Debit'].map(master.format)
         tbData['Credit'] = tbData['Credit'].map(master.format)
@@ -717,7 +930,7 @@ class Application(Frame):
         tbt = Table(ftop, dataframe=tbData, width=800, height=21, showtoolbar=True, showstatusbar=True)
         tbt.show()
         fmid = frame(tvw, TOP)
-        Label(fmid, text="Total of Trial Balance: "+total, font='Helvetica 12 bold').pack(side=TOP, padx=10, pady=10)
+        Label(fmid, text="Total of Trial Balance: "+'{:,.0f}'.format(total), font='Helvetica 12 bold').pack(side=TOP, padx=10, pady=10)
         fbot = frame(tvw, TOP)
         Button(fbot, text="Ok and Next", command=lambda: master.tb_rollforward_window(tvw)).pack(side=RIGHT, padx=10, pady=10)        
         Button(fbot, text="Cancel", command=tvw.destroy).pack(side=RIGHT, padx=10, pady=10)

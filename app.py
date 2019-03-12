@@ -490,11 +490,11 @@ class Application(Frame):
             if sel_list_glAccA == [] or sel_list_glAccB == [] or ipt_accB_name.get() == "" or ipt_accA_name.get() == "":
                 master.status.set("Select Account A and Account B, and set their names properly!")
                 return
-            def value(row, l):
+            def value(row, l, acc):
                 if row['Particulars'] in l:
-                    return True
+                    return "in account "+acc
                 else:
-                    return False
+                    return "not in account "+acc
             gw = Toplevel(master)
             gw.wm_title("Correlation Analysis")
             tbAData = tbData.loc[(tbData['Particulars'].isin(sel_list_glAccA))]
@@ -502,19 +502,21 @@ class Application(Frame):
             jvnoA = tempAData['JV Number'].unique().tolist()
             tempAData = glData.loc[(glData["JV Number"].isin(jvnoA))]
             tempAData = tempAData.loc[(~tempAData["Particulars"].isin(sel_list_glAccA))]
-            tempAData['In_Account_B'] = tempAData.apply(lambda row: value(row, sel_list_glAccB), axis = 1)
-            tempAData = tempAData.groupby(['In_Account_B', 'Date']).aggregate({'Amount': np.sum}).reset_index()
-            tempAData = pd.pivot_table(tempAData, values='Amount', index=['Date'], columns='In_Account_B', aggfunc=np.sum).reset_index()
-            #tempAData = tempAData.groupby(tempAData.Date.dt.to_period('M')).sum().reset_index()
+            tAData = tempAData
+            tempAData[ipt_accA_name.get()] = tempAData.apply(lambda row: value(row, sel_list_glAccB, "B"), axis = 1)
+            tempAData = tempAData.groupby([ipt_accA_name.get(), 'Date']).aggregate({'Amount': np.sum}).reset_index()
+            tempAData = pd.pivot_table(tempAData, values='Amount', index=['Date'], columns=ipt_accA_name.get(), aggfunc=np.sum).reset_index()
+            tAData = tAData.groupby(['Date']).aggregate({'Amount': np.sum}).reset_index()
             tbBData = tbData.loc[(tbData['Particulars'].isin(sel_list_glAccB))]
             tempBData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
             jvnoB = tempBData['JV Number'].unique().tolist()
             tempBData = glData.loc[(glData["JV Number"].isin(jvnoB))]
             tempBData = tempBData.loc[(~tempBData["Particulars"].isin(sel_list_glAccB))]
-            tempBData['In_Account_A'] = tempBData.apply(lambda row: value(row, sel_list_glAccA), axis = 1)
-            tempBData = tempBData.groupby(['In_Account_A', 'Date']).aggregate({'Amount': np.sum}).reset_index()
-            tempBData = pd.pivot_table(tempBData, values='Amount', index=['Date'], columns='In_Account_A', aggfunc=np.sum).reset_index()
-            #tempBData = tempBData.groupby(tempBData.Date.dt.to_period('M')).sum().reset_index()
+            tBData = tempBData
+            tempBData[ipt_accB_name.get()] = tempBData.apply(lambda row: value(row, sel_list_glAccA, "A"), axis = 1)
+            tempBData = tempBData.groupby([ipt_accB_name.get(), 'Date']).aggregate({'Amount': np.sum}).reset_index()
+            tempBData = pd.pivot_table(tempBData, values='Amount', index=['Date'], columns=ipt_accB_name.get(), aggfunc=np.sum).reset_index()
+            tBData = tBData.groupby(['Date']).aggregate({'Amount': np.sum}).reset_index()
             ftop = frame(gw, TOP)
             fg1 = frame(ftop, LEFT)
             Label(fg1, text="Composition of "+ipt_accA_name.get()+" activity (Primary) \n\n", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
@@ -527,8 +529,8 @@ class Application(Frame):
             fg2 = frame(ftop, LEFT)
             Label(fg2, text="Audit Period\n"+master.project.getFYend()+"\n------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg2, text='{:,.0f}'.format(tbAData['Opening Balance'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
-            Label(fg2, text='{:,.0f}'.format(tempAData[1].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
-            Label(fg2, text='{:,.0f}'.format(tempAData[0].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tempAData['in account B'].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(tempAData['not in account B'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg2, text="---------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg2, text='{:,.0f}'.format(tbAData['Closing Balance'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg2, text="---------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
@@ -536,7 +538,7 @@ class Application(Frame):
             Label(fg3, text=" \n \n", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg3, text="Correlation", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg3, text="difference", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
-            Label(fg3, text='{:,.0f}'.format((abs(tempAData[1].sum()) - abs(tempBData[1].sum()))*100/abs(tempAData[1].sum()))+"%", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg3, text='{:,.0f}'.format((abs(tempAData['in account B'].sum()) - abs(tempBData['in account A'].sum()))*100/abs(tempAData['in account B'].sum()))+"%", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg3, text=" ", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg3, text=" ", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg3, text=" ", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
@@ -551,36 +553,41 @@ class Application(Frame):
             fg5 = frame(ftop, LEFT)
             Label(fg5, text="Audit Period\n"+master.project.getFYend()+"\n------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg5, text='{:,.0f}'.format(tbBData['Opening Balance'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
-            Label(fg5, text='{:,.0f}'.format(tempBData[1].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
-            Label(fg5, text='{:,.0f}'.format(tempBData[0].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tempBData['in account A'].sum()), relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg5, text='{:,.0f}'.format(tempBData['not in account A'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg5, text="---------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg5, text='{:,.0f}'.format(tbBData['Closing Balance'].sum()), relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             Label(fg5, text="---------------", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
             graphF = frame(gw, TOP)
-            Data0 = pd.DataFrame()
-            Data1 = pd.DataFrame()
-            Data2 = pd.DataFrame()
-            Data0['Date'] = tempAData['Date']
-            Data0['B - '+ipt_accA_name.get()+' activity posting to '+ipt_accB_name.get()] = tempAData[1].map(lambda x: abs(x))
-            Data0['B - '+ipt_accB_name.get()+' activity posting to '+ipt_accA_name.get()] = tempBData[1].map(lambda x: abs(x))
-            Data0['A - '+ipt_accA_name.get()+' activity not posting to '+ipt_accB_name.get()] = tempAData[0].map(lambda x: abs(x))
-            Data0 = Data0.groupby(Data0.Date.dt.to_period("M")).sum().reset_index()
+            Data0 = tempAData.groupby(tempAData.Date.dt.to_period('M')).sum()
+            Data1 = tAData.groupby(tAData.Date.dt.to_period('M')).sum()
+            Data1 = Data1.rename(columns = {'Amount':ipt_accA_name.get()})
+            Data2 = tBData.groupby(tBData.Date.dt.to_period('M')).sum()
+            Data2 = Data2.rename(columns = {'Amount':ipt_accB_name.get()})
             figure = plt.Figure(figsize=(3,2), dpi=100)
-            ax = figure.add_subplot(111)
             bar = FigureCanvasTkAgg(figure, graphF)
             bar.get_tk_widget().pack(side=TOP, fill=BOTH)
-            Data0.plot.bar(stacked=False, legend=True, ax=ax)
-            ax.set_title(ipt_accA_name.get()+' Vs. '+ipt_accB_name.get())
+            ax1 = figure.add_subplot(121)
+            Data0.plot.bar(stacked=True, legend=True, ax=ax1)
+            ax2 = figure.add_subplot(122)
+            Data1.plot.line(legend=True, ax=ax2)
+            Data2.plot.line(legend=True, ax=ax2)
             os.chdir('images')
             figure.savefig('myplot.png')
             os.chdir('..')
             tableF = frame(gw, TOP)
+            Data0 = Data0.reset_index()
+            Data1 = Data1.reset_index()
+            Data2 = Data2.reset_index()
+            Data = pd.merge(Data2, Data1, on=["Date"])
+            Data = pd.merge(Data, Data0, on=["Date"])
+            Data = Data.rename(columns = {'in account B':ipt_accA_name.get()+" attributed to "+ipt_accB_name.get(), 'not in account B': ipt_accA_name.get()+" not attributed to "+ipt_accB_name.get()})
             i=0
-            for col in tuple(Data0):
+            for col in tuple(Data):
                 if not i == 0:
-                    Data0[col] = Data0[col].map(master.format)
+                    Data[col] = Data[col].map(master.format)
                 i = i+1
-            pt = Table(tableF, dataframe=Data0, width=400, height=100, showtoolbar=False, showstatusbar=False)
+            pt = Table(tableF, dataframe=Data, width=400, height=100, showtoolbar=False, showstatusbar=False)
             pt.show()
             buttonF = frame(gw, BOTTOM)
             def export_to_excel(df):

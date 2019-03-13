@@ -609,6 +609,115 @@ class Application(Frame):
         Button(fbot1, text="Done", command=c2aw.destroy).pack(side=RIGHT, padx=10)
         Button(fbot1, text="Cancel", command=c2aw.destroy).pack(side=RIGHT, padx=10)
 
+    def significant_acc_window(self):
+        saw = Toplevel(self)
+        saw.wm_title("Significant Accounts Identification")
+        tbData = self.project.getTBData()
+        self.sigDatabySize = None
+        self.threshold = None
+        f0 = frame(saw, TOP)
+        Label(f0, text="Select Significant Accounts by size", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1 = frame(saw, TOP)
+        Label(f1, text="Enter Threshold Amount:", relief=FLAT, anchor='e').pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
+        ipt_threshold_amt = Entry(f1, relief=SUNKEN)
+        ipt_threshold_amt.pack(side=LEFT, padx=10)
+        Label(f1, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
+        f2 = frame(saw, TOP)
+        self.f3 = frame(saw, TOP)
+        Canvas(self.f3, width=800, height=250).pack()
+        def getSignificantBySize(master):
+            if ipt_threshold_amt.get() == '':
+                return
+            try:
+                master.threshold = int(ipt_threshold_amt.get())
+            except Exception as e:
+                master.status.set("Please input a number in threshold value!")
+                return
+            master.sigDatabySize = tbData.loc[(abs(tbData['Closing Balance']) >= master.threshold)]
+            master.f3.destroy()
+            master.f3 = frame(saw, TOP)
+            st = Table(master.f3, dataframe=master.sigDatabySize, width=800, height=21, showtoolbar=True, showstatusbar=True)
+            st.show()
+        Button(f2, text="Get Significant Accounts", command=lambda: getSignificantBySize(self)).pack(side=TOP, padx=10)
+        f4 = frame(saw, BOTTOM)
+        Button(f4, text="Ok and Next", command=lambda: self.significant_byrisk_window(saw)).pack(side=RIGHT, padx=10)
+        Button(f4, text="Cancel", command=saw.destroy).pack(side=RIGHT, padx=10)
+
+    def significant_byrisk_window(self, saw):
+        if self.sigDatabySize is None:
+            self.status.set("Must select significant accounts by size!")
+            return
+        else:
+            self.status.set('')
+        saw.destroy()
+        sbw = Toplevel(self)
+        sbw.wm_title("Significant Accounts Identification")
+        tbData = self.project.getTBData()
+        selected = set()
+        tempData = tbData.loc[(abs(tbData['Closing Balance']) < self.threshold)]
+        f0 = frame(sbw, TOP)
+        Label(f0, text="Select Significant Accounts by risk", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1 = frame(sbw, TOP)
+        tTree = ttk.Treeview(f1)
+        T_scroll = Scrollbar(f1, command= tTree.yview)
+        tTree.configure(yscrollcommand=T_scroll.set)
+        tTree["columns"]=("A")
+        tTree.column("A", width=200)
+        tTree.heading("A", text="Closing Balance")
+        for index, row in tempData.iterrows():
+            tTree.insert('', 'end', row['Particulars'], text=row['Particulars'], values=('{:,.0f}'.format(row['Closing Balance'])))
+        tTree.pack(side=LEFT)
+        T_scroll.pack(side=LEFT, fill=Y)
+        ipt_accSel = Listbox(f1, selectmode='multiple', exportselection=False)
+        def select():
+            selection = tTree.selection()
+            if selection == ():
+                return
+            for iid in selection:
+                selected.add(iid)
+            ipt_accSel.delete(0, END)
+            for d in selected:
+                ipt_accSel.insert(END, d)
+        Button(f1, text=" >> ", command=select).pack(side=LEFT, padx=10)
+        def delet(evt):
+            for i in ipt_accSel.curselection():
+                selected.remove(ipt_accSel.get(i))
+            ipt_accSel.delete(0, END)
+            for item in selected:
+                ipt_accSel.insert(END, item)            
+        ipt_accSel.bind("<Delete>", delet)
+        scroll_accSel = Scrollbar(f1, orient=VERTICAL, command=ipt_accSel.yview)
+        ipt_accSel.config(yscrollcommand=scroll_accSel.set)
+        ipt_accSel.pack(side=LEFT, fill=BOTH, expand=YES)
+        scroll_accSel.pack(side=LEFT, fill=Y)
+        f2 = frame(sbw, TOP)
+        def save(master, savefilename):
+            tsigDatabySize = master.sigDatabySize[['Particulars']]
+            tsigDatabySize['Significance'] = "By Size"
+            sigDatabyRisk = {'Particulars': list(selected)}
+            tsigDatabyRisk = pd.DataFrame.from_dict(sigDatabyRisk)
+            tsigDatabyRisk['Significance'] = "By Risk"
+            sigData = pd.concat([tsigDatabySize, tsigDatabyRisk]).reset_index()
+            sigData = sigData[['Particulars','Significance']]
+            writer = pd.ExcelWriter(savefilename, engine='xlsxwriter')
+            sigData.to_excel(writer, sheet_name='Sheet1')
+            writer.save()
+        def exportSignificantAccs(master):
+            savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+            if savefile == '':
+                return
+            save(master, savefile)
+        Button(f2, text="Export Significant Accounts", command=lambda: exportSignificantAccs(self)).pack(side=TOP, padx=10)
+        f3 = frame(sbw, TOP)
+        def dne(master, sbw):
+            os.chdir("Data")
+            filename = os.path.abspath(master.project.getProjectName()+"_sig")
+            os.chdir("..")
+            save(master, filename)
+            sbw.destroy()
+        Button(f3, text="Done", command=lambda: dne(self, sbw)).pack(side=RIGHT, padx=10)
+        Button(f3, text="Cancel", command=sbw.destroy).pack(side=RIGHT, padx=10)
+
     def relation_2acc(self):
         c2aw = Toplevel(self)
         c2aw.wm_title("Relationship Analysis of 2 Accounts")
@@ -887,7 +996,7 @@ class Application(Frame):
         Button(f1, text="Analyze Income Statement", bg="white", command=self.income_statement_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Business Unit Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f1, text="Financial Statement Tie-out", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f1, text="Significant Accounts Identification", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f1, text="Significant Accounts Identification", bg="white", command=self.significant_acc_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f1, text="Income Analysis", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1.pack(expand=YES, fill=BOTH)
@@ -1005,7 +1114,7 @@ class Application(Frame):
                         bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
                             bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
-        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
@@ -1051,7 +1160,7 @@ class Application(Frame):
                         bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
                             bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
-        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        bsTree.pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
@@ -1069,7 +1178,7 @@ class Application(Frame):
             return '0'
         elif type(x) == str:
             return x
-        elif x == None:
+        elif x is None:
             return '0'
         else:
             return '{:,.0f}'.format(x)
@@ -1272,7 +1381,7 @@ class Application(Frame):
         f3.pack(expand=YES, fill=BOTH)
 
     def ipt_select_sysvalues_window(self):
-        if self.project == None:
+        if self.project is None:
             self.status.set("First Create Project or Load existing Project!")
             return
         elif self.project.getGLInputFile() == '' or self.project.getTBInputFile() == '' or self.project.getCAInputFile() == '':
@@ -1598,7 +1707,7 @@ class Application(Frame):
         f6.pack(expand=YES, fill=BOTH)
 
     def input_data_window(self):
-        if self.project == None:
+        if self.project is None:
             self.status.set("First Create Project or Load existing Project!")
             return
         idw = Toplevel(self)

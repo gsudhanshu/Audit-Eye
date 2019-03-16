@@ -654,7 +654,7 @@ class Application(Frame):
         sbw = Toplevel(self)
         sbw.wm_title("Significant Accounts Identification")
         tbData = self.project.getTBData()
-        selected = set()
+        selected = {}
         tempData = tbData.loc[(abs(tbData['Closing Balance']) < self.threshold)]
         f0 = frame(sbw, TOP)
         Label(f0, text="Select Significant Accounts by risk", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -670,22 +670,38 @@ class Application(Frame):
         tTree.pack(side=LEFT)
         T_scroll.pack(side=LEFT, fill=Y)
         ipt_accSel = Listbox(f1, selectmode='multiple', exportselection=False)
-        def select():
+        def select(master):
             selection = tTree.selection()
             if selection == ():
                 return
+            elif len(selection) > 1:
+                master.status.set("Select only one account at a time.")
+                return
             for iid in selection:
-                selected.add(iid)
-            ipt_accSel.delete(0, END)
-            for d in selected:
-                ipt_accSel.insert(END, d)
-        Button(f1, text=" >> ", command=select).pack(side=LEFT, padx=10)
+                if iid in selected:
+                    master.status.set(iid+" already selected!")
+                    return
+                m = Toplevel(sbw)
+                Label(m, text="Input Rationale:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                ipt_rationale = Entry(m, relief=SUNKEN, width=40)
+                ipt_rationale.pack(side=TOP)
+                def add(p):
+                    selected[p] = ipt_rationale.get()
+                    ipt_accSel.delete(0, END)
+                    for d in list(selected.keys()):
+                        ipt_accSel.insert(END, d)
+                    m.destroy()
+                Button(m, text="Insert", command=lambda: add(iid)).pack(side=TOP, padx=10)
+                break
+        f1_1 = frame(f1, LEFT)
+        Button(f1_1, text="Add >>", command=lambda: select(self)).pack(side=TOP, padx=10, pady=10)
         def delet(evt):
             for i in ipt_accSel.curselection():
-                selected.remove(ipt_accSel.get(i))
+                del(selected[ipt_accSel.get(i)])
             ipt_accSel.delete(0, END)
-            for item in selected:
+            for item in list(selected.keys()):
                 ipt_accSel.insert(END, item)            
+        Button(f1_1, text="Remove --", command=lambda: delet(0)).pack(side=TOP, padx=10, pady=10)
         ipt_accSel.bind("<Delete>", delet)
         scroll_accSel = Scrollbar(f1, orient=VERTICAL, command=ipt_accSel.yview)
         ipt_accSel.config(yscrollcommand=scroll_accSel.set)
@@ -693,13 +709,15 @@ class Application(Frame):
         scroll_accSel.pack(side=LEFT, fill=Y)
         f2 = frame(sbw, TOP)
         def save(master, savefilename):
-            tsigDatabySize = master.sigDatabySize[['Particulars']]
+            tsigDatabySize = master.sigDatabySize[['Particulars', 'Closing Balance']]
             tsigDatabySize['Significance'] = "By Size"
-            sigDatabyRisk = {'Particulars': list(selected)}
-            tsigDatabyRisk = pd.DataFrame.from_dict(sigDatabyRisk)
-            tsigDatabyRisk['Significance'] = "By Risk"
+            #sigDatabyRisk = {'Particulars': list(selected.keys())}
+            #tsigDatabyRisk = pd.DataFrame.from_dict(sigDatabyRisk)
+            sigDatabyRisk = tbData.loc[(tbData['Particulars'].isin(list(selected.keys())))]
+            tsigDatabyRisk = sigDatabyRisk[['Particulars', 'Closing Balance']]
+            tsigDatabyRisk['Significance'] = tsigDatabyRisk.apply(lambda row: "By Risk - "+selected[row['Particulars']], axis=1)
             sigData = pd.concat([tsigDatabySize, tsigDatabyRisk]).reset_index()
-            sigData = sigData[['Particulars','Significance']]
+            sigData = sigData[['Particulars', 'Closing Balance', 'Significance']]
             writer = pd.ExcelWriter(savefilename, engine='xlsxwriter')
             sigData.to_excel(writer, sheet_name='Sheet1')
             writer.save()

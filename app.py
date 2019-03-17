@@ -682,7 +682,7 @@ class Application(Frame):
                     master.status.set(iid+" already selected!")
                     return
                 m = Toplevel(sbw)
-                Label(m, text="Input Rationale:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                Label(m, text="Document Rationale:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                 ipt_rationale = Entry(m, relief=SUNKEN, width=40)
                 ipt_rationale.pack(side=TOP)
                 def add(p):
@@ -691,7 +691,7 @@ class Application(Frame):
                     for d in list(selected.keys()):
                         ipt_accSel.insert(END, d)
                     m.destroy()
-                Button(m, text="Insert", command=lambda: add(iid)).pack(side=TOP, padx=10)
+                Button(m, text="Ok", command=lambda: add(iid)).pack(side=TOP, padx=10)
                 break
         f1_1 = frame(f1, LEFT)
         Button(f1_1, text="Add >>", command=lambda: select(self)).pack(side=TOP, padx=10, pady=10)
@@ -1102,7 +1102,7 @@ class Application(Frame):
 
     def balance_sheet_window(master):
         bsw = Toplevel(master)
-        bsw.geometry('800x350')
+        bsw.geometry('800x400')
         bsw.wm_title("Analyze Balance Sheet")
         #create pivot
         tbData = master.project.getTBData()
@@ -1137,6 +1137,21 @@ class Application(Frame):
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
+        def activity_analysis(master):
+            selection = bsTree.selection()
+            if selection == (): #no selection
+                master.status.set("Select a GL Account for activity analysis")
+                return
+            elif len(selection) > 1:
+                master.status.set("Select only 1 GL Account for activity analysis")
+                return
+            for item in selection:
+                if not item[:11] == 'Particulars':
+                    master.status.set("Select a GL Account for activity analysis")
+                    return
+                else:
+                    master.activity_analysis_window(bsw, item[12:])
+        Button(fbot, text="Activity Analysis", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
         def table_view():
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Balance Sheet: Table View")
@@ -1146,9 +1161,62 @@ class Application(Frame):
         Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
         fbot.pack(expand=YES, fill=BOTH)
 
+    def activity_analysis_window(master, w, p):
+        aaw = Toplevel(w)
+        #aaw.geometry('800x350')
+        aaw.wm_title("Activity Analysis - "+p)
+        #get Data
+        tbData = master.project.getTBData()
+        glData = master.project.getGLData()
+        tData = tbData.loc[(tbData["Particulars"] == p)]
+        gData = glData.loc[(glData["Particulars"] == p)]
+        #Display info
+        ftop = frame(aaw, TOP)
+        fg1 = frame(ftop, LEFT)
+        Label(fg1, text="Opening Balance", relief=FLAT, bg="white", anchor="e").pack(side=TOP, fill=BOTH, expand=YES)
+        Label(fg1, text="GL Movement     ", relief=FLAT, bg="white", anchor="e").pack(side=TOP, fill=BOTH, expand=YES)
+        Label(fg1, text="Closing Balance  ", relief=FLAT, bg="white", anchor="e").pack(side=TOP, fill=BOTH, expand=YES)
+        fg2 = frame(ftop, LEFT)
+        Label(fg2, text='{:,.0f}'.format(tData['Opening Balance'].sum()), relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
+        Label(fg2, text='{:,.0f}'.format(gData['Amount'].sum()), relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
+        Label(fg2, text='{:,.0f}'.format(tData['Closing Balance'].sum()), relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
+        fmid = frame(aaw, TOP)
+        Data0 = gData[['Date', 'Amount']]
+        if not Data0.empty: #if no GL movement
+            Data0 = Data0.groupby(Data0.Date.dt.to_period('M')).sum()
+            graphF = frame(fmid, TOP)
+            figure = plt.Figure(figsize=(5,3), dpi=100)
+            line = FigureCanvasTkAgg(figure, graphF)
+            line.get_tk_widget().pack(side=TOP, fill=BOTH)
+            ax1 = figure.add_subplot(111)
+            Data0.plot.line(legend=True, ax=ax1)
+            os.chdir('images')
+            figure.savefig('myplot.png')
+            os.chdir('..')
+            tableF = frame(fmid, TOP)
+            Data0 = Data0.reset_index()
+            i=0
+            for col in tuple(Data0):
+                if not i == 0:
+                    Data0[col] = Data0[col].map(master.format)
+                i = i+1
+            pt = Table(tableF, dataframe=Data0, width=600, height=100, showtoolbar=False, showstatusbar=False)
+            pt.show()
+            tableF1 = frame(fmid, TOP)
+            Data1 = gData.groupby(gData.Source).sum()
+            Data1 = Data1.reset_index()
+            Data1 = Data1[['Source', 'Amount']]
+            i=0
+            for col in tuple(Data1):
+                if not i == 0:
+                    Data1[col] = Data1[col].map(master.format)
+                i = i+1
+            pt1 = Table(tableF1, dataframe=Data1, width=600, height=100, showtoolbar=False, showstatusbar=False)
+            pt1.show()
+
     def income_statement_window(master):
         bsw = Toplevel(master)
-        bsw.geometry('800x350')
+        bsw.geometry('800x400')
         bsw.wm_title("Analyze Income Statement")
         #create pivot
         tbData = master.project.getTBData()
@@ -1183,6 +1251,21 @@ class Application(Frame):
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
+        def activity_analysis(master):
+            selection = bsTree.selection()
+            if selection == (): #no selection
+                master.status.set("Select a GL Account for activity analysis")
+                return
+            elif len(selection) > 1:
+                master.status.set("Select only 1 GL Account for activity analysis")
+                return
+            for item in selection:
+                if not item[:11] == 'Particulars':
+                    master.status.set("Select a GL Account for activity analysis")
+                    return
+                else:
+                    master.activity_analysis_window(bsw, item[12:])
+        Button(fbot, text="Activity Analysis", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
         def table_view():
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Income Statement: Table View")

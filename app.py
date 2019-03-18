@@ -1092,14 +1092,14 @@ class Application(Frame):
         tgs = master.project.getTags()
         glData = master.project.getGLData()
         f0 = frame(taw, TOP)
-        Label(f0, text="Tags by JV no.s:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f0, text="JVs selected for sampling:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1 = frame(taw, TOP)
         tTree = ttk.Treeview(f1)
         T_scroll = Scrollbar(f1, command= tTree.yview)
         tTree.configure(yscrollcommand=T_scroll.set)
         tTree["columns"]=("A")
         tTree.column("A", width=200)
-        tTree.heading("A", text="Tag")
+        tTree.heading("A", text="Rationale")
         for jvno in list(tgs.keys()):
             tTree.insert('', 'end', jvno, text=jvno, values=[tgs[jvno]])
         tTree.pack(side=LEFT)
@@ -1430,11 +1430,11 @@ class Application(Frame):
                         if ipt_tag.get() == '':
                             master.status.set("Input Tag comment is mandatory!")
                             return
-                        master.project.addTag(jvno, ipt_tag.get())
+                        master.project.addTag(jvno, "Process Map: "+ipt_tag.get())
                         tjw.destroy()
                     Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
-                    Label(tjw, text="Tag JVno.("+str(jvno)+"):", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
-                    ipt_tag.pack(side=RIGHT, fill=BOTH, expand=YES)
+                    Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                    ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                     return
                 Button(fj2, text="Tag JV", command=lambda: tag_jv(master, detailsData.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
                 Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)

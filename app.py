@@ -59,6 +59,7 @@ class Application(Frame):
             self.SG04FileName = ''
             self.SG04File = None
             self.ip_saved = ''
+            self.tags = {}
         def getProjectFName(self):
             return self.fname
         def getProjectName(self):
@@ -117,6 +118,38 @@ class Application(Frame):
             self.AccDefvalidated = AccDefvalidated
         def getAccDefvalidated(self):
             return self.AccDefvalidated
+        def addTag(self, jvno, tag):
+            self.tags[jvno] = self.tags[jvno]+"; "+tag if jvno in list(self.tags.keys()) else tag
+            self.__storeTags()
+        def removeTag(self, jvno):
+            del(self.tags[jvno])
+            self.__storeTags()
+        def setTags(self):
+            cwd = os.getcwd()
+            if cwd[-4:] != "Data":
+                os.chdir('Data')
+            tagsdata = pd.read_excel(""+self.getProjectName()+"_tags")
+            for index, row in tagsdata.iterrows():
+                self.tags[row['JV']] = row['Tags']
+            cwd = os.getcwd()
+            if cwd[-4:] == 'Data':
+                os.chdir('..')
+        def __storeTags(self):
+            #store tags in Data folder as a excel file
+            tgs = {'JV':list(self.tags.keys())}
+            tagsData = pd.DataFrame.from_dict(tgs)
+            tagsData['Tags'] = tagsData.apply(lambda row: self.tags[row['JV']], axis = 1)
+            cwd = os.getcwd()
+            if cwd[-4:] != "Data":
+                os.chdir('Data')
+            writer = pd.ExcelWriter(""+self.getProjectName()+"_tags", engine='xlsxwriter')
+            tagsData.to_excel(writer)
+            writer.save()
+            cwd = os.getcwd()
+            if cwd[-4:] == 'Data':
+                os.chdir('..')
+        def getTags(self):
+            return self.tags
         def setSourceInputF(self, sourceFileName):
             if sourceFileName != '':
                 self.sourceInput = pd.read_excel(sourceFileName)
@@ -1037,7 +1070,7 @@ class Application(Frame):
         Button(f3, text="Preparer Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Identify and Understand Booking Patterns", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f3, text="Tagging Analysis - Journals", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Tagging Analysis - Journals", bg="white", command=self.tagging_analysis_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f3.pack(expand=YES, fill=BOTH)
@@ -1052,6 +1085,54 @@ class Application(Frame):
         Button(f4, text="Additional Reports", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Custom Analytics - visualization", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         f4.pack(expand=YES, fill=BOTH)
+
+    def tagging_analysis_window(master):
+        taw = Toplevel(master)
+        taw.wm_title("Tagging Analysis - Journals")
+        tgs = master.project.getTags()
+        glData = master.project.getGLData()
+        f0 = frame(taw, TOP)
+        Label(f0, text="Tags by JV no.s:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f1 = frame(taw, TOP)
+        tTree = ttk.Treeview(f1)
+        T_scroll = Scrollbar(f1, command= tTree.yview)
+        tTree.configure(yscrollcommand=T_scroll.set)
+        tTree["columns"]=("A")
+        tTree.column("A", width=200)
+        tTree.heading("A", text="Tag")
+        for jvno in list(tgs.keys()):
+            tTree.insert('', 'end', jvno, text=jvno, values=[tgs[jvno]])
+        tTree.pack(side=LEFT)
+        T_scroll.pack(side=LEFT, fill=Y)
+        fmid = frame(taw, TOP)
+        Label(fmid, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+        def showJVDetails(master):
+            selection = tTree.selection()
+            if selection == (): #no selection
+                return
+            if len(selection) > 1: #more than one selection
+                master.status.set("Select one JV at a time for details")
+                return
+            sjdw = Toplevel(taw)
+            sjdw.wm_title("Tagging Analysis: JV Number Details")
+            jvdetailsData = glData.loc[(glData['JV Number'] == int(selection[0]))]
+            jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+            fj1 = frame(sjdw, TOP)
+            pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+            pt.show()
+            fj2 = frame(sjdw, TOP)
+            Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+        Button(fmid, text="Details", command=lambda: showJVDetails(master)).pack(side=LEFT, padx=10, pady=10)        
+        def remTag(master):
+            selection = tTree.selection()
+            if selection == (): #no selection
+                return
+            for jv in selection:
+                master.project.removeTag(int(jv))
+                tTree.delete(jv)
+        Button(fmid, text="Remove", command=lambda: remTag(master)).pack(side=LEFT, padx=10, pady=10)        
+        Label(fmid, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+        Button(taw, text="Done", command=taw.destroy).pack(side=TOP, padx=10, pady=10)        
 
     def tb_validation_window(master):
         tvw = Toplevel(master)
@@ -1213,6 +1294,8 @@ class Application(Frame):
                 i = i+1
             pt1 = Table(tableF1, dataframe=Data1, width=600, height=100, showtoolbar=False, showstatusbar=False)
             pt1.show()
+        fbot = frame(aaw, TOP)
+        Button(fbot, text="Done", command=aaw.destroy).pack(side=TOP, padx=10, pady=10)
 
     def income_statement_window(master):
         bsw = Toplevel(master)
@@ -1304,7 +1387,7 @@ class Application(Frame):
         pivott.show()
         f1.pack(expand=YES, fill=BOTH)
         fmid = frame(pmw, TOP)
-        def showDetails():
+        def showDetails(master):
             col = pivott.getSelectedColumn()
             row = pivott.getSelectedRow()
             if col < 2:
@@ -1324,7 +1407,7 @@ class Application(Frame):
             detailst.show()
             fd1.pack(expand=YES, fill=BOTH)
             fd2 = frame(sdw, TOP)
-            def showJVDetails():
+            def showJVDetails(master):
                 coli = detailst.getSelectedColumn()
                 rowi = detailst.getSelectedRow()
                 if not coli == 1:
@@ -1340,14 +1423,28 @@ class Application(Frame):
                 pt.show()
                 fj1.pack(expand=YES, fill=BOTH)            
                 fj2 = frame(sjdw, TOP)
+                def tag_jv(master, jvno):
+                    tjw = Toplevel(sjdw)
+                    ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                    def ok(master, jvno):
+                        if ipt_tag.get() == '':
+                            master.status.set("Input Tag comment is mandatory!")
+                            return
+                        master.project.addTag(jvno, ipt_tag.get())
+                        tjw.destroy()
+                    Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                    Label(tjw, text="Tag JVno.("+str(jvno)+"):", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+                    ipt_tag.pack(side=RIGHT, fill=BOTH, expand=YES)
+                    return
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, detailsData.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
                 Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
                 fj2.pack(expand=YES, fill=BOTH)            
-            Button(fd2, text="Details", command=showJVDetails).pack(side=TOP, padx=10, pady=10)
+            Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
             fd2.pack(expand=YES, fill=BOTH)
             fd3 = frame(sdw, TOP)
             Button(fd3, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=10)
             fd3.pack(expand=YES, fill=BOTH)
-        Button(fmid, text="Details", command=showDetails).pack(side=TOP, padx=10, pady=10)
+        Button(fmid, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=10)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(pmw, TOP)
         Button(fbot, text="Done", command=pmw.destroy).pack(side=TOP, padx=10, pady=10)
@@ -2066,6 +2163,10 @@ class Application(Frame):
         else:
             self.project = self.Project(projectName, fy_end, timing, creator, sector, fname)
             try:
+                try:
+                    self.project.setTags()
+                except IOError:
+                    self.status.set("Tags missing")
                 self.project.setGLInputFile(glInputFile)
                 self.project.setTBInputFile(tbInputFile)
                 self.project.setCAInputFile(caInputFile)

@@ -2184,6 +2184,10 @@ class Application(Frame):
                     self.project.setTags()
                 except IOError:
                     self.status.set("Tags missing")
+                finally:
+                    cwd = os.getcwd()
+                    if cwd[-4:] == 'Data':
+                        os.chdir('..')
                 self.project.setGLInputFile(glInputFile)
                 self.project.setTBInputFile(tbInputFile)
                 self.project.setCAInputFile(caInputFile)

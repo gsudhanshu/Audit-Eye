@@ -1183,7 +1183,7 @@ class Application(Frame):
 
     def balance_sheet_window(master):
         bsw = Toplevel(master)
-        bsw.geometry('800x400')
+        bsw.geometry('800x450')
         bsw.wm_title("Analyze Balance Sheet")
         #create pivot
         tbData = master.project.getTBData()
@@ -1218,6 +1218,7 @@ class Application(Frame):
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
+        Label(fbot, text="Guidance: Select GL Account to run Activity Analysis.", relief=FLAT, bg="yellow").pack(side=TOP, padx=10, pady=10)
         def activity_analysis(master):
             selection = bsTree.selection()
             if selection == (): #no selection
@@ -1263,7 +1264,9 @@ class Application(Frame):
         Label(fg2, text='{:,.0f}'.format(tData['Closing Balance'].sum()), relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
         fmid = frame(aaw, TOP)
         Data0 = gData[['Date', 'Amount']]
-        if not Data0.empty: #if no GL movement
+        if Data0.empty: #if no GL movement
+            Label(fmid, text="No GL Movement during the period.", relief=FLAT, bg="white").pack(side=TOP, fill=BOTH, expand=YES)
+        else:
             Data0 = Data0.groupby(Data0.Date.dt.to_period('M')).sum()
             graphF = frame(fmid, TOP)
             figure = plt.Figure(figsize=(5,3), dpi=100)
@@ -1287,6 +1290,19 @@ class Application(Frame):
             Data1 = gData.groupby(gData.Source).sum()
             Data1 = Data1.reset_index()
             Data1 = Data1[['Source', 'Amount']]
+            Data1 = Data1.rename(columns = {'Amount':'Net Activity'})
+            Data2 = gData.loc[(gData['Amount'] >= 0)]
+            Data2 = Data2.groupby(Data2.Source).sum()
+            Data2 = Data2.reset_index()
+            Data2 = Data2[['Source', 'Amount']]
+            Data2 = Data2.rename(columns = {'Amount':'Dr Activity'})
+            Data3 = gData.loc[(gData['Amount'] < 0)]
+            Data3 = Data3.groupby(Data3.Source).sum()
+            Data3 = Data3.reset_index()
+            Data3 = Data3[['Source', 'Amount']]
+            Data3 = Data3.rename(columns = {'Amount':'Cr Activity'})
+            Data1 = pd.merge(Data1, Data2, how="outer")
+            Data1 = pd.merge(Data1, Data3, how="outer")
             i=0
             for col in tuple(Data1):
                 if not i == 0:
@@ -1299,7 +1315,7 @@ class Application(Frame):
 
     def income_statement_window(master):
         bsw = Toplevel(master)
-        bsw.geometry('800x400')
+        bsw.geometry('800x450')
         bsw.wm_title("Analyze Income Statement")
         #create pivot
         tbData = master.project.getTBData()
@@ -1334,6 +1350,7 @@ class Application(Frame):
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
         fbot = frame(bsw, TOP)
+        Label(fbot, text="Guidance: Select GL Account to run Activity Analysis.", relief=FLAT, bg="yellow").pack(side=TOP, padx=10, pady=10)
         def activity_analysis(master):
             selection = bsTree.selection()
             if selection == (): #no selection

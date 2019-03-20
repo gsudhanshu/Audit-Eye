@@ -1477,14 +1477,13 @@ class Application(Frame):
         self.status = StringVar()
         self.status.set("Started")
         self.pack(expand=YES, fill=BOTH)
-        self.master.title('DA Analyze')
+        self.master.title('Audit-Eye')
         os.chdir("images")
         #self.master.iconbitmap(os.path.abspath("logo.svg"))
         icon = ImageTk.PhotoImage(Image.open('logo.png'))
         self.master.tk.call('wm', 'iconphoto', self.master._w, icon)
         img = ImageTk.PhotoImage(Image.open("base.jpg"))
         os.chdir("..")
-        self.master.iconname("DA")
         self.master.resizable(0,0)
         mBar = Frame(self, relief=RAISED, borderwidth=2)
         mBar.pack(fill=X)
@@ -2086,7 +2085,7 @@ class Application(Frame):
             pf.write("Sector="+sector+"\n")
             pf.close()
             master.project = master.Project(project_name, fy_end, timing, creator, sector, os.path.abspath(project_name+".p"))
-            self.winfo_toplevel().title("DA Analyze: "+project_name)
+            self.winfo_toplevel().title("Audit-Eye: "+project_name)
             master.status.set("Project Created. Now select Tools -> Manage Data")
             parent.destroy()
         Button(f2, text="Submit", command=lambda: onSubmit(cpw, self, ipt_project_name.get(), ipt_fy_end.get_date().strftime('%d/%m/%Y'), ipt_timing.get_date().strftime('%d/%m/%Y'), ipt_creator.get(), ipt_sector.get())).pack(side=TOP, padx=10, pady=10)
@@ -2106,7 +2105,7 @@ class Application(Frame):
         for line in f:
             if line[:11] == "ProjectName":
                 projectName = line[12:-1]
-                self.winfo_toplevel().title("DA Analyze: "+projectName)
+                self.winfo_toplevel().title("Audit-Eye: "+projectName)
                 self.status.set("Loading Project Files...")
                 self.update()
             elif line[:6] == "FY_end":

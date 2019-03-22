@@ -1354,7 +1354,7 @@ class Application(Frame):
         f3 = frame(self.f0, LEFT)
         Label(f3, text="Process Analysis", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Process Map", bg="white", fg="RoyalBlue4", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Button(f3, text="Preparer Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Preparer Map", bg="white", fg="RoyalBlue4", command=self.preparer_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Identify and Understand Booking Patterns", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Tagging Analysis - Journals", bg="white", fg="RoyalBlue4", command= self.tagging_analysis_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -1671,6 +1671,90 @@ class Application(Frame):
             return '0'
         else:
             return '{:,.0f}'.format(x)
+
+    def preparer_map_window(master):
+        prmw = Toplevel(master)
+        prmw.wm_title("Preparer Map Analysis")
+        glData = master.project.getGLData()
+        caData = master.project.getCAData()
+        prepData = master.project.getPreparerInput()
+        jData = glData.merge(caData, on=['Particulars'])
+        jData = jData.merge(prepData, on=['Preparer'])
+        jData["User"] = jData["Preparer"] + " - " + jData["Title"] + " - " + jData["Department"]
+        pivotData = pd.pivot_table(jData, values='Amount', index=['Account Category','Particulars'], columns='User', aggfunc=np.sum).reset_index()
+        i = 0
+        for col in tuple(pivotData):
+            if i > 1:
+                pivotData[col] = pivotData[col].map(master.format)
+            i=i+1
+        #f1: Top pane
+        f1 = frame(prmw, TOP)
+        pivott = Table(f1, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+        pivott.show()
+        f1.pack(expand=YES, fill=BOTH)
+        fmid = frame(prmw, TOP)
+        def showDetails(master):
+            col = pivott.getSelectedColumn()
+            row = pivott.getSelectedRow()
+            if col < 2:
+                return
+            if str(pivotData.iloc[row, col]) in ('NaN', 'nan', ''):
+                return
+            username = (pivotData.columns[col])[:(pivotData.columns[col]).find(' - ')]
+            acc_cat = pivotData.iloc[row, 0]
+            particulars = pivotData.iloc[row, 1]
+            sdw = Toplevel(prmw)
+            sdw.wm_title("Preparer Map Analysis: Details")
+            detailsData = glData.loc[(glData['Particulars'] == particulars) & (glData['Preparer'] == username)]
+            detailsData['Amount'] = detailsData['Amount'].map(master.format)
+            #fd1: Top pane
+            fd1 = frame(sdw, TOP)
+            detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=True, showstatusbar=True)
+            detailst.show()
+            fd1.pack(expand=YES, fill=BOTH)
+            fd2 = frame(sdw, TOP)
+            def showJVDetails(master):
+                coli = detailst.getSelectedColumn()
+                rowi = detailst.getSelectedRow()
+                if not coli == 1:
+                    return
+                if str(detailsData.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                    return
+                sjdw = Toplevel(sdw)
+                sjdw.wm_title("Preparer Map Analysis: JV Number Details")
+                jvdetailsData = glData.loc[(glData['JV Number'] == detailsData.iloc[rowi, coli])]
+                jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                fj1 = frame(sjdw, TOP)
+                pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                pt.show()
+                fj1.pack(expand=YES, fill=BOTH)            
+                fj2 = frame(sjdw, TOP)
+                def tag_jv(master, jvno):
+                    tjw = Toplevel(sjdw)
+                    ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                    def ok(master, jvno):
+                        if ipt_tag.get() == '':
+                            master.status.set("Input Tag comment is mandatory!")
+                            return
+                        master.project.addTag(jvno, "Process Map: "+ipt_tag.get())
+                        tjw.destroy()
+                    Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                    Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                    ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                    return
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, detailsData.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                fj2.pack(expand=YES, fill=BOTH)            
+            Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+            fd2.pack(expand=YES, fill=BOTH)
+            fd3 = frame(sdw, TOP)
+            Button(fd3, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=10)
+            fd3.pack(expand=YES, fill=BOTH)
+        Button(fmid, text="Details", command=lambda: showDetails(master)).pack(side=TOP)
+        fmid.pack(expand=YES, fill=BOTH)
+        fbot = frame(prmw, TOP)
+        Button(fbot, text="Done", command=prmw.destroy).pack(side=TOP, padx=10, pady=10)
+        fbot.pack(expand=YES, fill=BOTH)
 
     def process_map_window(master):
         pmw = Toplevel(master)
@@ -2059,7 +2143,7 @@ class Application(Frame):
         iupw.wm_title("Validate Input Parameters: Preparer")
         #f1: Top pane
         f1 = frame(iupw, TOP)
-        Label(f1, text="Verify that preparer file has following fields: Username, Full Name, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Verify that preparer file has following fields: Preparer, Full Name, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         master.preparerFileName = StringVar()
         master.preparerFileName.set('')
         master.changeInputF = 0

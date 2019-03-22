@@ -151,7 +151,10 @@ class Application(Frame):
         def getTags(self):
             return self.tags
         def setSourceInputF(self, sourceFileName):
-            if sourceFileName != '':
+            if sourceFileName == '':
+                self.sourceInputF = ''
+                self.sourceInput = None
+            elif sourceFileName[-4:] != '_src':
                 self.sourceInput = pd.read_excel(sourceFileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != "Data":
@@ -164,15 +167,17 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.sourceInputF = ''
-                self.sourceInput = None
+                self.sourceInputF = sourceFileName
+                self.sourceInput = pd.read_excel(sourceFileName)
         def getSourceInputF(self):
             return self.sourceInputF
         def getSourceInput(self):
             return self.sourceInput
         def setPreparerInputF(self, preparerFileName):
-            #self.preparerInputF = preparerFileName
-            if preparerFileName != '':
+            if preparerFileName == '':
+                self.preparerInput = None
+                self.preparerInputF = ''
+            elif preparerFileName[-5:] != '_prep':
                 self.preparerInput = pd.read_excel(preparerFileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -185,15 +190,17 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.preparerInput = None
-                self.preparerInputF = ''
+                self.preparerInputF = preparerFileName
+                self.preparerInput = pd.read_excel(preparerFileName)
         def getPreparerInputF(self):
             return self.preparerInputF
         def getPreparerInput(self):
             return self.preparerInput
         def setBUInputF(self, BUFileName):
-            #self.BUInputF = BUFileName
-            if BUFileName != '':
+            if BUFileName == '':
+                self.BUInput = None
+                self.BUInputF = ''
+            elif BUFileName[-3:] != '_BU':
                 self.BUInput = pd.read_excel(BUFileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -206,14 +213,17 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.BUInput = None
-                self.BUInputF = ''
+                self.BUInput = pd.read_excel(BUFileName)
+                self.BUInputF = BUFileName
         def getBUInputF(self):
             return self.BUInputF
         def getBUInput(self):
             return self.BUInput
         def setSegmentFiles(self, SG01FileName, SG02FileName, SG03FileName, SG04FileName):
-            if SG01FileName != '':
+            if SG01FileName == '':
+                self.SG01File = None
+                self.SG01FileName = ''
+            elif SG01FileName[-5:] != '_SG01':
                 self.SG01File = pd.read_excel(SG01FileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -226,10 +236,12 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.SG01File = None
-                self.SG01FileName = ''
-            self.SG02FileName = SG02FileName
-            if SG02FileName != '':
+                self.SG01File = pd.read_excel(SG01FileName)
+                self.SG01FileName = SG01FileName
+            if SG02FileName == '':
+                self.SG02File = None
+                self.SG02FileName = ''
+            elif SG02FileName[-5:] != '_SG02':
                 self.SG02File = pd.read_excel(SG02FileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -242,9 +254,12 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.SG02File = None
-                self.SG02FileName = ''
-            if SG03FileName != '':
+                self.SG02File = pd.read_excel(SG02FileName)
+                self.SG02FileName = SG02FileName
+            if SG03FileName == '':
+                self.SG03File = None
+                self.SG04FileName = ''
+            elif SG03FileName[-5:] != '_SG03':
                 self.SG03File = pd.read_excel(SG03FileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -257,9 +272,12 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.SG03File = None
+                self.SG03File = pd.read_excel(SG03FileName)
+                self.SG04FileName = SG03FileName
+            if SG04FileName == '':
+                self.SG04File = None
                 self.SG04FileName = ''
-            if SG04FileName != '':
+            elif SG04FileName[-5:] != '_SG04':
                 self.SG04File = pd.read_excel(SG04FileName)
                 cwd = os.getcwd()
                 if cwd[-4:] != 'Data':
@@ -272,8 +290,8 @@ class Application(Frame):
                 if cwd[-4:] == 'Data':
                     os.chdir('..')
             else:
-                self.SG04File = None
-                self.SG04FileName = ''
+                self.SG04File = pd.read_excel(SG04FileName)
+                self.SG04FileName = SG04FileName
         def getSG01FileName(self):
             return self.SG01FileName
         def getSG01File(self):
@@ -1307,9 +1325,11 @@ class Application(Frame):
 
     def init_dashboard(self):
         self.l1.destroy()
+        self.f0.destroy()
+        self.f0 = frame(self.w, TOP)
         self.status.set("")
         #f1: left pane
-        f1 = frame(self.w, LEFT)
+        f1 = frame(self.f0, LEFT)
         Label(f1, text="Financial Statement Profiling", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f1, text="Analyze Balance Sheet", bg="white", fg="RoyalBlue4", command=self.balance_sheet_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f1, text="Analyze Income Statement", bg="white", fg="RoyalBlue4", command= self.income_statement_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -1320,7 +1340,7 @@ class Application(Frame):
         Label(f1, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f1.pack(expand=YES, fill=BOTH)
         #f2: second pane
-        f2 = frame(self.w, LEFT)
+        f2 = frame(self.f0, LEFT)
         Label(f2, text="Validation", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="JE Validation", bg="white", fg="RoyalBlue4", command=self.JEvalidate_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f2, text="Date Validation", bg="white", fg="RoyalBlue4", command=self.date_validation_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -1331,7 +1351,7 @@ class Application(Frame):
         Label(f2, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f2.pack(expand=YES, fill=BOTH)
         #f3: third pane
-        f3 = frame(self.w, LEFT)
+        f3 = frame(self.f0, LEFT)
         Label(f3, text="Process Analysis", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Process Map", bg="white", fg="RoyalBlue4", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Preparer Map", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
@@ -1342,7 +1362,7 @@ class Application(Frame):
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         f3.pack(expand=YES, fill=BOTH)
         #f4: Last pane
-        f4 = frame(self.w, LEFT)
+        f4 = frame(self.f0, LEFT)
         Label(f4, text="Account and Journal Entry Analysis", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 2 accounts", bg="white", fg="RoyalBlue4", command= self.correlation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 3 accounts", command= self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -1763,6 +1783,7 @@ class Application(Frame):
         self.l1 = Label(self.w, image=img, relief=SUNKEN)
         self.l1.pack(side=TOP, fill=BOTH, expand=YES, padx=5)
         self.l1.image = img
+        self.f0 = frame(self.w, TOP)
         lbl_status = Entry(self.w, textvariable=self.status, justify=LEFT, relief=RAISED)
         lbl_status.pack(side=BOTTOM, fill=BOTH, expand=YES, padx=5)
 
@@ -2005,8 +2026,10 @@ class Application(Frame):
         #f2: Middle pane
         f2 = frame(iusw, TOP)
         text_source = Text(f2, height=20, width=100)
+        if master.project.getSourceInputF() != '':
+            text_source.insert(END, master.project.getSourceInput()) #display dataframe in text
         def browseSourceF(master):
-            master.sourceFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            master.sourceFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"))))
             if master.sourceFileName.get() == (): #in case of cancel or no selection
                 master.sourceFileName.set('')
                 return
@@ -2036,7 +2059,7 @@ class Application(Frame):
         iupw.wm_title("Validate Input Parameters: Preparer")
         #f1: Top pane
         f1 = frame(iupw, TOP)
-        Label(f1, text="Verify that preparer file has following fields: UserName, FullName, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Verify that preparer file has following fields: Username, Full Name, Title, Department and Role", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
         master.preparerFileName = StringVar()
         master.preparerFileName.set('')
         master.changeInputF = 0
@@ -2045,8 +2068,10 @@ class Application(Frame):
         #f2: Middle pane
         f2 = frame(iupw, TOP)
         text_preparer = Text(f2, height=20, width=100)
+        if master.project.getPreparerInputF() != '':
+            text_preparer.insert(END, master.project.getPreparerInput()) #display dataframe in text
         def browsePreparerF(master):
-            master.preparerFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            master.preparerFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"))))
             if master.preparerFileName.get() == (): #in case of cancel or no selection
                 master.preparerFileName.set('')
                 return
@@ -2085,8 +2110,10 @@ class Application(Frame):
         #f2: Middle pane
         f2 = frame(iubw, TOP)
         text_BU = Text(f2, height=20, width=120)
+        if master.project.getBUInputF() != '':
+            text_BU.insert(END, master.project.getBUInput()) #display dataframe in text
         def browseBUFile(master):
-            master.BUFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"),("All Files", "*"))))
+            master.BUFileName.set(askopenfilename(filetypes=(("xlsx", "*.xlsx"),("xls", "*.xls"))))
             if master.BUFileName.get() == (): #in case of cancel or no selection
                 master.BUFileName.set('')
                 return

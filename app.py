@@ -341,6 +341,273 @@ class Application(Frame):
             os.chdir('..')
         master.status.set("Project Input Parameters reset. To input correct parameters select Tools -> Input Parameters")
 
+    def gross_margin_window(self):
+        gmw = Toplevel(self)
+        gmw.wm_title("Gross Margin Analysis")
+        caData = self.project.getCAData()
+        glData = self.project.getGLData()
+        tbData = self.project.getTBData()
+        #ftop: Top Pane
+        ftop = frame(gmw, TOP)
+        Label(ftop, text="Select 'Sales' Accounts:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
+        Label(ftop, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmid = frame(gmw, TOP)
+        f1 = frame(fmid, LEFT)
+        Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
+        acc_categories = caData['Account Category'].unique().tolist()
+        for s in acc_categories:
+            if str(s) != 'nan':
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        f2 = frame(fmid, LEFT)
+        Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        f3 = frame(fmid, LEFT)
+        Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        f4 = frame(fmid, LEFT)
+        Label(f4, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAcc = Listbox(f4,selectmode='multiple', exportselection=False)
+        scroll_glAcc = Scrollbar(f4, orient=VERTICAL, command=ipt_glAcc.yview)
+        ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAcc.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        def accSubclassSelectionChange(evt):
+            ipt_glAcc.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclass))]
+                particulars = tempData['Particulars'].unique().tolist()
+                for s in particulars:
+                    ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAcc.select_set(0, END)
+        ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
+        #Cost Accounts
+        ftopB = frame(gmw, TOP)
+        Label(ftopB, text="Select 'Cost' Accounts:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
+        Label(ftopB, text="", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmidB = frame(gmw, TOP)
+        f1B = frame(fmidB, LEFT)
+        Label(f1B, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCatB = Listbox(f1B,selectmode='multiple', exportselection=False)
+        scroll_accCatB = Scrollbar(f1B, orient=VERTICAL, command=ipt_accCatB.yview)
+        ipt_accCatB.config(yscrollcommand=scroll_accCatB.set)
+        acc_categoriesB = caData['Account Category'].unique().tolist()
+        for s in acc_categoriesB:
+            if str(s) != 'nan':
+                ipt_accCatB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCatB.pack(side=RIGHT, fill=Y)
+        f2B = frame(fmidB, LEFT)
+        Label(f2B, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClassB = Listbox(f2B,selectmode='multiple', exportselection=False)
+        scroll_accClassB = Scrollbar(f2B, orient=VERTICAL, command=ipt_accClassB.yview)
+        ipt_accClassB.config(yscrollcommand=scroll_accClassB.set)
+        ipt_accClassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClassB.pack(side=RIGHT, fill=Y)
+        f3B = frame(fmidB, LEFT)
+        Label(f3B, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclassB = Listbox(f3B,selectmode='multiple', exportselection=False)
+        scroll_accSubclassB = Scrollbar(f3B, orient=VERTICAL, command=ipt_accSubclassB.yview)
+        ipt_accSubclassB.config(yscrollcommand=scroll_accSubclassB.set)
+        ipt_accSubclassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclassB.pack(side=RIGHT, fill=Y)
+        f4B = frame(fmidB, LEFT)
+        Label(f4B, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAccB = Listbox(f4B,selectmode='multiple', exportselection=False)
+        scroll_glAccB = Scrollbar(f4B, orient=VERTICAL, command=ipt_glAccB.yview)
+        ipt_glAccB.config(yscrollcommand=scroll_glAccB.set)
+        ipt_glAccB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAccB.pack(side=RIGHT, fill=Y)
+        def accCatBSelectionChange(evt):
+            ipt_accClassB.delete(0, END)
+            w = evt.widget
+            sel_list_accCatB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCatB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCatB))]
+                acc_classesB = tempData['Account Class'].unique().tolist()
+                for s in acc_classesB:
+                    ipt_accClassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.bind('<<ListboxSelect>>', accCatBSelectionChange)
+        def accClassBSelectionChange(evt):
+            ipt_accSubclassB.delete(0, END)
+            w = evt.widget
+            sel_list_accClassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClassB))]
+                acc_subclassesB = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclassesB:
+                    ipt_accSubclassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClassB.bind('<<ListboxSelect>>', accClassBSelectionChange)
+        def accSubclassBSelectionChange(evt):
+            ipt_glAccB.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclassB))]
+                particularsB = tempData['Particulars'].unique().tolist()
+                for s in particularsB:
+                    ipt_glAccB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAccB.select_set(0, END)
+        ipt_accSubclassB.bind('<<ListboxSelect>>', accSubclassBSelectionChange)
+        def generateGM(master):
+            sel_list_glAccA = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAccA.append(ipt_glAcc.get(i))
+            sel_list_glAccB = []
+            for i in ipt_glAccB.curselection():
+                sel_list_glAccB.append(ipt_glAccB.get(i))
+            if sel_list_glAccA == [] or sel_list_glAccB == []:
+                master.status.set("Select Sales and Cost accounts properly!")
+                return
+            gw = Toplevel(gmw)
+            gw.wm_title("Gross Margin Analysis")
+            salesData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
+            costData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
+            ftop = frame(gw, TOP)
+            fg1 = frame(ftop, LEFT)
+            Label(fg1, text="Gross Margin %   = ", relief=FLAT, bg="white", anchor="e").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg1, text="Gross Margin Amt = ", relief=FLAT, bg="white", anchor="e").pack(side=TOP, fill=BOTH, expand=YES)
+            fg2 = frame(ftop, LEFT)
+            Label(fg2, text='{:,.0f}'.format((abs(salesData['Amount'].sum()) - abs(costData['Amount'].sum()))*100/abs(salesData['Amount'].sum()))+" %", relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
+            Label(fg2, text='{:,.0f}'.format(abs(salesData['Amount'].sum()) - abs(costData['Amount'].sum())), relief=FLAT, bg="white", anchor="w").pack(side=TOP, fill=BOTH, expand=YES)
+            graphF = frame(gw, TOP)
+            sData0 = salesData.groupby(salesData.Date.dt.to_period('M')).sum()
+            sData0 = sData0.reset_index()
+            cData0 = costData.groupby(costData.Date.dt.to_period('M')).sum()
+            cData0 = cData0.reset_index()
+            Data0 = pd.DataFrame()
+            Data0['Date'] = sData0['Date']
+            Data0["Gross Margin %"] = (abs(sData0['Amount']) - abs(cData0['Amount']))*100/abs(sData0['Amount'])
+            Data0.set_index(['Date'], drop=True, inplace=True)
+            figure = plt.Figure(figsize=(5,3), dpi=100)
+            line = FigureCanvasTkAgg(figure, graphF)
+            line.get_tk_widget().pack(side=TOP, fill=BOTH)
+            ax1 = figure.add_subplot(111)
+            Data0.plot.line(legend=True, ax=ax1)
+            os.chdir('images')
+            figure.savefig('myplot.png')
+            os.chdir('..')
+            tableF = frame(gw, TOP)
+            sData0 = sData0.reset_index()
+            sData0 = sData0.rename(columns = {'Amount':"Sales"})
+            sData0 = sData0[['Date','Sales']]
+            cData0 = cData0.reset_index()
+            cData0 = cData0.rename(columns = {'Amount':"Cost"})
+            cData0 = cData0[['Date','Cost']]
+            Data0 = Data0.reset_index()
+            Data = pd.merge(sData0, cData0, on=["Date"])
+            Data["Gross Margin Amt"] = abs(Data["Sales"]) - abs(Data["Cost"])
+            Data = pd.merge(Data, Data0, on=["Date"])
+            i=0
+            for col in tuple(Data):
+                if not i == 0:
+                    Data[col] = Data[col].map(master.format)
+                i = i+1
+            t0 = Table(tableF, dataframe=Data, width=600, height=60, showtoolbar=False, showstatusbar=False)
+            t0.show()
+            Label(gw, text="Sales and Cost Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            tableF1 = frame(gw, TOP)
+            Data1 = salesData.groupby(['Particulars', salesData.Date.dt.to_period('M')]).sum()
+            Data1 = Data1.reset_index()
+            Data1 = pd.pivot_table(Data1, values='Amount', index=['Date'], columns='Particulars', aggfunc=np.sum).reset_index()
+            i=0
+            for col in tuple(Data1):
+                if not i == 0:
+                    Data1[col] = Data1[col].map(master.format)
+                i = i+1
+            t1 = Table(tableF1, dataframe=Data1, width=600, height=60, showtoolbar=False, showstatusbar=False)
+            t1.show()
+            tableF2 = frame(gw, TOP)
+            Data2 = costData.groupby(['Particulars', costData.Date.dt.to_period('M')]).sum()
+            Data2 = Data2.reset_index()
+            Data2 = pd.pivot_table(Data2, values='Amount', index=['Date'], columns='Particulars', aggfunc=np.sum).reset_index()
+            i=0
+            for col in tuple(Data2):
+                if not i == 0:
+                    Data2[col] = Data2[col].map(master.format)
+                i = i+1
+            t1 = Table(tableF2, dataframe=Data2, width=600, height=60, showtoolbar=False, showstatusbar=False)
+            t1.show()
+            buttonF = frame(gw, BOTTOM)
+            def export_to_excel(df):
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                if savefile == '':
+                    return
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                df.to_excel(writer, sheet_name='Sheet1')
+                workbook = writer.book
+                worksheet = writer.sheets['Sheet1']
+                os.chdir('images')
+                worksheet.insert_image('B6', 'myplot.png')
+                writer.save()
+                os.chdir('..')
+            Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(Data)).pack(side=TOP, padx=10)
+        fbot0 = frame(gmw, TOP)
+        Button(fbot0, text="Generate Gross Margin Analysis", command=lambda: generateGM(self)).pack(side=TOP)
+        fbot1 = frame(gmw, TOP)
+        Button(fbot1, text="Done", command=gmw.destroy).pack(side=RIGHT, padx=10)
+        Button(fbot1, text="Cancel", command=gmw.destroy).pack(side=RIGHT, padx=10)
+
     def correlation_2acc(self):
         c2aw = Toplevel(self)
         c2aw.wm_title("Correlation Analysis of 2 Accounts")
@@ -1080,7 +1347,7 @@ class Application(Frame):
         Button(f4, text="Analyze Correlation b/w 2 accounts", bg="white", fg="RoyalBlue4", command= self.correlation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Correlation b/w 3 accounts", command= self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f4, text="Analyze Relationship of 2 accounts", bg="white", fg="RoyalBlue4", command= self.relation_2acc).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f4, text="Gross Margin Analysis", command= self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f4, text="Gross Margin Analysis", bg="white", fg="RoyalBlue4", command= self.gross_margin_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Cutoff Analysis of GL accounts", bg="white", fg="RoyalBlue4", command= self.cutoff_analysis).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Additional Reports", command= self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f4, text="Custom Analytics - visualization", command= self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        

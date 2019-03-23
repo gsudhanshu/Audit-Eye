@@ -1873,13 +1873,13 @@ class Application(Frame):
 
     def date_validation_window(self):
         ipw = Toplevel(self)
-        ipw.wm_title("Journal Entry Dates Validation")
+        ipw.wm_title("'Journal Entry' Dates Validation")
         #read gl and get max and min effective and entry dates
         glData = self.project.getGLData()
         min_entry_dt = glData['Date'].min()
         max_entry_dt = glData['Date'].max()
-        min_eff_dt = glData['Date'].min()
-        max_eff_dt = glData['Date'].max()
+        min_eff_dt = glData['Effective Date'].min()
+        max_eff_dt = glData['Effective Date'].max()
         columns = tuple(glData)
         f0 = frame(ipw, TOP)
         #f1: left pane

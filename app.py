@@ -1696,13 +1696,23 @@ class Application(Frame):
         def showDetails(master):
             col = pivott.getSelectedColumn()
             row = pivott.getSelectedRow()
-            if col < 2:
+            tempD = pivott.model.df
+            if tempD.columns[col] in ('Account Category', 'Particulars') :
                 return
-            if str(pivotData.iloc[row, col]) in ('NaN', 'nan', ''):
+            if str(tempD.iloc[row, col]) in ('NaN', 'nan', ''):
                 return
-            username = (pivotData.columns[col])[:(pivotData.columns[col]).find(' - ')]
-            acc_cat = pivotData.iloc[row, 0]
-            particulars = pivotData.iloc[row, 1]
+            username = (tempD.columns[col])[:(tempD.columns[col]).find(' - ')]
+            if tempD.columns[0] != 'Account Category' or tempD.columns[1] != 'Particulars':
+                ind = list(tempD.index)
+                if tempD.columns[0] == 'Account Category':
+                    acc_cat = tempD.iloc[row, 0]
+                    particulars = ind[row]
+                else:
+                    acc_cat = ind[row]
+                    particulars = tempD.iloc[row, 0]
+            else:
+                acc_cat = tempD.iloc[row, 0]
+                particulars = tempD.iloc[row, 1]
             sdw = Toplevel(prmw)
             sdw.wm_title("Preparer Map Analysis: Details")
             detailsData = glData.loc[(glData['Particulars'] == particulars) & (glData['Preparer'] == username)]
@@ -1716,13 +1726,14 @@ class Application(Frame):
             def showJVDetails(master):
                 coli = detailst.getSelectedColumn()
                 rowi = detailst.getSelectedRow()
-                if not coli == 1:
+                tD = detailst.model.df
+                if not tD.columns[coli] == 'JV Number':
                     return
-                if str(detailsData.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
                     return
                 sjdw = Toplevel(sdw)
                 sjdw.wm_title("Preparer Map Analysis: JV Number Details")
-                jvdetailsData = glData.loc[(glData['JV Number'] == detailsData.iloc[rowi, coli])]
+                jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
                 jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
                 fj1 = frame(sjdw, TOP)
                 pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
@@ -1742,7 +1753,7 @@ class Application(Frame):
                     Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                     ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                     return
-                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, detailsData.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
                 Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
                 fj2.pack(expand=YES, fill=BOTH)            
             Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
@@ -1778,13 +1789,23 @@ class Application(Frame):
         def showDetails(master):
             col = pivott.getSelectedColumn()
             row = pivott.getSelectedRow()
-            if col < 2:
+            tempD = pivott.model.df
+            if tempD.columns[col] in ('Account Category', 'Particulars') :
                 return
-            if str(pivotData.iloc[row, col]) in ('NaN', 'nan', ''):
+            if str(tempD.iloc[row, col]) in ('NaN', 'nan', ''):
                 return
-            source = pivotData.columns[col]
-            acc_cat = pivotData.iloc[row, 0]
-            particulars = pivotData.iloc[row, 1]
+            source = tempD.columns[col]
+            if tempD.columns[0] != 'Account Category' or tempD.columns[1] != 'Particulars':
+                ind = list(tempD.index)
+                if tempD.columns[0] == 'Account Category':
+                    acc_cat = tempD.iloc[row, 0]
+                    particulars = ind[row]
+                else:
+                    acc_cat = ind[row]
+                    particulars = tempD.iloc[row, 0]
+            else:
+                acc_cat = tempD.iloc[row, 0]
+                particulars = tempD.iloc[row, 1]
             sdw = Toplevel(pmw)
             sdw.wm_title("Process Map Analysis: Details")
             detailsData = glData.loc[(glData['Particulars'] == particulars) & (glData['Source'] == source)]
@@ -1798,13 +1819,14 @@ class Application(Frame):
             def showJVDetails(master):
                 coli = detailst.getSelectedColumn()
                 rowi = detailst.getSelectedRow()
-                if not coli == 1:
+                tD = detailst.model.df
+                if not tD.columns[coli] == 'JV Number':
                     return
-                if str(detailsData.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
                     return
                 sjdw = Toplevel(sdw)
                 sjdw.wm_title("Process Map Analysis: JV Number Details")
-                jvdetailsData = glData.loc[(glData['JV Number'] == detailsData.iloc[rowi, coli])]
+                jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
                 jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
                 fj1 = frame(sjdw, TOP)
                 pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
@@ -1824,7 +1846,7 @@ class Application(Frame):
                     Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                     ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
                     return
-                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, detailsData.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
                 Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
                 fj2.pack(expand=YES, fill=BOTH)            
             Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)

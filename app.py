@@ -135,19 +135,31 @@ class Application(Frame):
             if cwd[-4:] == 'Data':
                 os.chdir('..')
         def __storeTags(self):
-            #store tags in Data folder as a excel file
-            tgs = {'JV':list(self.tags.keys())}
-            tagsData = pd.DataFrame.from_dict(tgs)
-            tagsData['Tags'] = tagsData.apply(lambda row: self.tags[row['JV']], axis = 1)
-            cwd = os.getcwd()
-            if cwd[-4:] != "Data":
-                os.chdir('Data')
-            writer = pd.ExcelWriter(""+self.getProjectName()+"_tags", engine='xlsxwriter')
-            tagsData.to_excel(writer)
-            writer.save()
-            cwd = os.getcwd()
-            if cwd[-4:] == 'Data':
-                os.chdir('..')
+            if self.tags:
+                #store tags in Data folder as a excel file
+                tgs = {'JV':list(self.tags.keys())}
+                tagsData = pd.DataFrame.from_dict(tgs)
+                tagsData['Tags'] = tagsData.apply(lambda row: self.tags[row['JV']], axis = 1)
+                cwd = os.getcwd()
+                if cwd[-4:] != "Data":
+                    os.chdir('Data')
+                writer = pd.ExcelWriter(""+self.getProjectName()+"_tags", engine='xlsxwriter')
+                tagsData.to_excel(writer)
+                writer.save()
+                cwd = os.getcwd()
+                if cwd[-4:] == 'Data':
+                    os.chdir('..')
+            else:
+                cwd = os.getcwd()
+                if cwd[-4:] != "Data":
+                    os.chdir('Data')
+                try:
+                    os.remove(""+self.getProjectName()+"_tags")
+                except OSError:
+                    pass
+                cwd = os.getcwd()
+                if cwd[-4:] == 'Data':
+                    os.chdir('..')
         def getTags(self):
             return self.tags
         def setSourceInputF(self, sourceFileName):

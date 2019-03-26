@@ -12,6 +12,7 @@ import unicodedata as uni
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from pandastable import Table
+import calendar
 
 def frame(root, side):
     w=Frame(root)
@@ -981,6 +982,7 @@ class Application(Frame):
         Button(fbot0_1, text="Date Analysis - Day Lag", bg="white", fg="RoyalBlue4", command=lambda: day_lag_analysis(self)).pack(side=LEFT, padx=10, pady=5)
         Label(fbot0_1, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
         fbot0_2 = frame(fbot0, TOP)
+        months = {1:'01.Jan', 2:'02.Feb', 3:'03.Mar', 4:'04.Apr', 5:'05.May', 6:'06.Jun', 7:'07.Jul', 8:'08.Aug', 9:'09.Sep', 10:'10.Oct', 11:'11.Nov', 12:'12.Dec'}
         def netActivity_analysis(master):
             sel_list_glAcc = []
             for i in ipt_glAcc.curselection():
@@ -993,7 +995,8 @@ class Application(Frame):
             f1 = frame(naw, TOP)
             f2 = frame(naw, TOP)
             tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc))]
-            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            tempData['Month'] = tempData.apply(lambda row: months[row.Date.month], axis=1)
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns='Month', aggfunc=np.sum).reset_index()
             if tempData.empty:
                 Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
             else:
@@ -1003,8 +1006,9 @@ class Application(Frame):
                         tempData[col] = tempData[col].map(master.format)
                     i = i+1
                 tempData = tempData.sort_values(by=['Date'], ascending=True)
-                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t = Table(f1, dataframe=tempData, width=700, height=620, showtoolbar=False, showstatusbar=False)
                 t.show()
+                Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
                 def showDetails(master):
                     col = t.getSelectedColumn()
                     row = t.getSelectedRow()
@@ -1013,7 +1017,7 @@ class Application(Frame):
                         return
                     if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
                         return
-                    sel_month = tempD.columns[col]
+                    sel_month = tempD.columns[col][:2]
                     if not 'Date' in tuple(tempD):
                         ind = list(tempD.index)
                         sel_day = ind[row]
@@ -1069,7 +1073,7 @@ class Application(Frame):
                         writer.save()
                     Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
                     Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
-                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=10)
                 def export_to_excel():
                     savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
                     if savefile == '':
@@ -1077,8 +1081,9 @@ class Application(Frame):
                     writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
                     Data.to_excel(writer, sheet_name='Sheet1')
                     writer.save()
-                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
-            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=10)
+            Button(f2, text="Done", command=naw.destroy).pack(side=LEFT, padx=10)
+            Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
         Button(fbot0_2, text="Net Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: netActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
         def debitActivity_analysis(master):
             sel_list_glAcc = []
@@ -1092,7 +1097,8 @@ class Application(Frame):
             f1 = frame(naw, TOP)
             f2 = frame(naw, TOP)
             tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc)) & (glData['Amount'] >= 0)]
-            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            tempData['Month'] = tempData.apply(lambda row: months[row.Date.month], axis=1)
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns='Month', aggfunc=np.sum).reset_index()
             if tempData.empty:
                 Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
             else:
@@ -1102,7 +1108,7 @@ class Application(Frame):
                         tempData[col] = tempData[col].map(master.format)
                     i = i+1
                 tempData = tempData.sort_values(by=['Date'], ascending=True)
-                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t = Table(f1, dataframe=tempData, width=700, height=620, showtoolbar=False, showstatusbar=False)
                 t.show()
                 def showDetails(master):
                     col = t.getSelectedColumn()
@@ -1112,7 +1118,7 @@ class Application(Frame):
                         return
                     if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
                         return
-                    sel_month = tempD.columns[col]
+                    sel_month = tempD.columns[col][:2]
                     if not 'Date' in tuple(tempD):
                         ind = list(tempD.index)
                         sel_day = ind[row]
@@ -1168,7 +1174,8 @@ class Application(Frame):
                         writer.save()
                     Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
                     Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
-                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=10)
                 def export_to_excel():
                     savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
                     if savefile == '':
@@ -1176,8 +1183,9 @@ class Application(Frame):
                     writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
                     Data.to_excel(writer, sheet_name='Sheet1')
                     writer.save()
-                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
-            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=10)
+            Button(f2, text="Done", command=naw.destroy).pack(side=LEFT, padx=10)
+            Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
         Button(fbot0_2, text="Debit Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: debitActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
         def creditActivity_analysis(master):
             sel_list_glAcc = []
@@ -1191,7 +1199,8 @@ class Application(Frame):
             f1 = frame(naw, TOP)
             f2 = frame(naw, TOP)
             tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc)) & (glData['Amount'] < 0)]
-            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            tempData['Month'] = tempData.apply(lambda row: months[row.Date.month], axis=1)
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns='Month', aggfunc=np.sum).reset_index()
             if tempData.empty:
                 Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
             else:
@@ -1201,7 +1210,7 @@ class Application(Frame):
                         tempData[col] = tempData[col].map(master.format)
                     i = i+1
                 tempData = tempData.sort_values(by=['Date'], ascending=True)
-                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t = Table(f1, dataframe=tempData, width=700, height=620, showtoolbar=False, showstatusbar=False)
                 t.show()
                 def showDetails(master):
                     col = t.getSelectedColumn()
@@ -1211,7 +1220,7 @@ class Application(Frame):
                         return
                     if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
                         return
-                    sel_month = tempD.columns[col]
+                    sel_month = tempD.columns[col][:2]
                     if not 'Date' in tuple(tempD):
                         ind = list(tempD.index)
                         sel_day = ind[row]
@@ -1267,7 +1276,8 @@ class Application(Frame):
                         writer.save()
                     Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
                     Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
-                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=10)
                 def export_to_excel():
                     savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
                     if savefile == '':
@@ -1275,8 +1285,9 @@ class Application(Frame):
                     writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
                     Data.to_excel(writer, sheet_name='Sheet1')
                     writer.save()
-                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
-            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=10)
+            Button(f2, text="Done", command=naw.destroy).pack(side=LEFT, padx=10)
+            Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
         Button(fbot0_2, text="Credit Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: creditActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
         fbot1 = frame(ubp, TOP)
         Button(fbot1, text="Done", command=ubp.destroy).pack(side=RIGHT, padx=10)

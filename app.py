@@ -638,6 +638,650 @@ class Application(Frame):
         Button(fbot1, text="Done", command=gmw.destroy).pack(side=RIGHT, padx=10)
         Button(fbot1, text="Cancel", command=gmw.destroy).pack(side=RIGHT, padx=10)
 
+    def understand_booking_patterns(self):
+        ubp = Toplevel(self)
+        ubp.wm_title("Understand Booking Patterns")
+        caData = self.project.getCAData()
+        glData = self.project.getGLData()
+        #ftop: Top Pane
+        ftop = frame(ubp, TOP)
+        Label(ftop, text="Select GL Accounts:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmid = frame(ubp, TOP)
+        f1 = frame(fmid, LEFT)
+        Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
+        acc_categories = caData['Account Category'].unique().tolist()
+        for s in acc_categories:
+            if str(s) != 'nan':
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        f2 = frame(fmid, LEFT)
+        Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        f3 = frame(fmid, LEFT)
+        Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        f4 = frame(fmid, LEFT)
+        Label(f4, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAcc = Listbox(f4,selectmode='multiple', exportselection=False)
+        scroll_glAcc = Scrollbar(f4, orient=VERTICAL, command=ipt_glAcc.yview)
+        ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAcc.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        def accSubclassSelectionChange(evt):
+            ipt_glAcc.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclass))]
+                particulars = tempData['Particulars'].unique().tolist()
+                for s in particulars:
+                    ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAcc.select_set(0, END)
+        ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
+        fbot0 = frame(ubp, TOP)
+        fbot0_1 = frame(fbot0, TOP)
+        Label(fbot0_1, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+        def day_analysis(master):
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            if sel_list_glAcc == []:
+                master.status.set("Select GL Accounts!")
+                return
+            daw = Toplevel(ubp)
+            daw.wm_title("Day Analysis - Day of Week")
+            f1 = frame(daw, TOP)
+            f2 = frame(daw, TOP)
+            tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc))]
+            tempDrData = tempData.loc[(tempData["Amount"] >= 0)]
+            tempCrData = tempData.loc[(tempData["Amount"] < 0)]
+            tempData = tempData.groupby(tempData.Date.dt.weekday_name).sum()
+            tempData = tempData.reset_index()
+            tempData = tempData[['Date', 'Amount']]
+            tempData = tempData.rename(columns = {'Date':'DayofWk', 'Amount':'NetAmount'})
+            tempDrData = tempDrData.groupby(tempDrData.Date.dt.weekday_name).sum()
+            tempDrData = tempDrData.reset_index()
+            tempDrData = tempDrData[['Date', 'Amount']]
+            tempDrData = tempDrData.rename(columns = {'Date':'DayofWk', 'Amount':'DebitAmount'})
+            tempCrData = tempCrData.groupby(tempCrData.Date.dt.weekday_name).sum()
+            tempCrData = tempCrData.reset_index()
+            tempCrData = tempCrData[['Date', 'Amount']]
+            tempCrData = tempCrData.rename(columns = {'Date':'DayofWk', 'Amount':'CreditAmount'})
+            Data = pd.merge(tempDrData, tempCrData, on=['DayofWk'])
+            Data = pd.merge(Data, tempData, on=['DayofWk'])
+            if Data.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                day = {'Monday':1, 'Tuesday':2, 'Wednesday':3, 'Thursday':4, 'Friday':5, 'Saturday':6, 'Sunday':7}
+                tData = pd.DataFrame()
+                tData['DayofWk'] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                tData['DebitAmount'] = [0, 0, 0, 0, 0, 0, 0]
+                tData['CreditAmount'] = [0, 0, 0, 0, 0, 0, 0]
+                tData['NetAmount'] = [0, 0, 0, 0, 0, 0, 0]
+                Data = Data.set_index(['DayofWk'])
+                tData = tData.set_index(['DayofWk'])
+                Data = Data.add(tData, fill_value=0).reset_index()
+                Data['SNo'] = Data.apply(lambda row: day[row['DayofWk']], axis=1)
+                Data = Data.sort_values(by=['SNo'])
+                Data = Data[['DayofWk', 'DebitAmount', 'CreditAmount', 'NetAmount']]
+                i = 0
+                for col in tuple(Data):
+                    if not i == 0:
+                        Data[col] = Data[col].map(master.format)
+                    i = i+1
+                t = Table(f1, dataframe=Data, width=400, height=140, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if tempD.columns[col] in ('DayofWk') :
+                        return
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    detailsData = glData.loc[(glData['Particulars'].isin(sel_list_glAcc))]
+                    if tempD.columns[col] in ('DebitAmount'):
+                        detailsData = detailsData.loc[(detailsData['Amount'] >= 0)]
+                    elif tempD.columns[col] in ('CreditAmount'):
+                        detailsData = detailsData.loc[(detailsData['Amount'] < 0)]
+                    if not 'DayofWk' in tuple(tempD):
+                        ind = list(tempD.index)
+                        sel_day = ind[row]
+                    else:
+                        sel_day = tempD['DayofWk'].iloc[row]
+                    detailsData['Day'] = detailsData['Date'].dt.day_name()
+                    detailsData = detailsData.loc[(detailsData['Day'] == sel_day)]
+                    detailsData = detailsData.drop(columns=['Day'])
+                    sdw = Toplevel(daw)
+                    sdw.wm_title("Day Analysis - Day of Week: Details")
+                    detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Day Analysis - Day of Week: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Day Analysis - Day of Week: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            return
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command=daw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot0_1, text="Day Analysis - Day of Week", bg="white", fg="RoyalBlue4", command= lambda: day_analysis(self)).pack(side=LEFT, padx=10, pady=5)
+        def day_lag_analysis(master):
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            if sel_list_glAcc == []:
+                master.status.set("Select GL Accounts!")
+                return
+            dlaw = Toplevel(ubp)
+            dlaw.wm_title("Date Analysis - Day Lag")
+            f1 = frame(dlaw, TOP)
+            f2 = frame(dlaw, TOP)
+            temp0Data = glData.loc[(glData["Particulars"].isin(sel_list_glAcc))]
+            temp0Data['DaysLag'] = temp0Data.apply(lambda row: (row['Date'] - row['Effective Date']).days, axis=1)
+            temp0Data['LineCount'] = 1
+            tempData = temp0Data
+            tempDrData = tempData.loc[(tempData["Amount"] >= 0)]
+            tempCrData = tempData.loc[(tempData["Amount"] < 0)]
+            tempData = tempData.groupby(tempData['DaysLag']).sum()
+            tempData = tempData.reset_index()
+            tempData = tempData[['DaysLag', 'Amount', 'LineCount']]
+            tempData = tempData.rename(columns = {'Amount':'NetAmount'})
+            tempDrData = tempDrData.groupby(tempDrData['DaysLag']).sum()
+            tempDrData = tempDrData.reset_index()
+            tempDrData = tempDrData[['DaysLag', 'Amount']]
+            tempDrData = tempDrData.rename(columns = {'Amount':'DebitAmount'})
+            tempCrData = tempCrData.groupby(tempCrData['DaysLag']).sum()
+            tempCrData = tempCrData.reset_index()
+            tempCrData = tempCrData[['DaysLag', 'Amount']]
+            tempCrData = tempCrData.rename(columns = {'Amount':'CreditAmount'})
+            Data = pd.merge(tempDrData, tempCrData, how='outer', on=['DaysLag'])
+            Data = pd.merge(Data, tempData, how='outer', on=['DaysLag'])
+            if Data.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                i = 0
+                for col in tuple(Data):
+                    if not i == 0:
+                        Data[col] = Data[col].map(master.format)
+                    i = i+1
+                Data = Data.sort_values(by=['DaysLag'], ascending=True)
+                t = Table(f1, dataframe=Data, width=400, height=140, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if tempD.columns[col] in ('DaysLag') :
+                        return
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    detailsData = temp0Data
+                    if tempD.columns[col] in ('DebitAmount'):
+                        detailsData = detailsData.loc[(detailsData['Amount'] >= 0)]
+                    elif tempD.columns[col] in ('CreditAmount'):
+                        detailsData = detailsData.loc[(detailsData['Amount'] < 0)]
+                    if not 'DaysLag' in tuple(tempD):
+                        ind = list(tempD.index)
+                        sel_day_lag = int(ind[row])
+                    else:
+                        sel_day_lag = int(tempD['DaysLag'].iloc[row])
+                    detailsData = detailsData.loc[(detailsData['DaysLag'] == sel_day_lag)]
+                    detailsData = detailsData.drop(columns=['DaysLag', 'LineCount'])
+                    sdw = Toplevel(dlaw)
+                    sdw.wm_title("Date Analysis - Day Lag: Details")
+                    detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Date Analysis - Day Lag: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Date Analysis - Day Lag: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            return
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command=dlaw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot0_1, text="Date Analysis - Day Lag", bg="white", fg="RoyalBlue4", command=lambda: day_lag_analysis(self)).pack(side=LEFT, padx=10, pady=5)
+        Label(fbot0_1, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+        fbot0_2 = frame(fbot0, TOP)
+        def netActivity_analysis(master):
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            if sel_list_glAcc == []:
+                master.status.set("Select GL Accounts!")
+                return
+            naw = Toplevel(ubp)
+            naw.wm_title("Net Activity Analysis by Month")
+            f1 = frame(naw, TOP)
+            f2 = frame(naw, TOP)
+            tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc))]
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            if tempData.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                i = 0
+                for col in tuple(tempData):
+                    if not i == 0:
+                        tempData[col] = tempData[col].map(master.format)
+                    i = i+1
+                tempData = tempData.sort_values(by=['Date'], ascending=True)
+                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if str(tempD.columns[col]) in ('Date') :
+                        return
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    sel_month = tempD.columns[col]
+                    if not 'Date' in tuple(tempD):
+                        ind = list(tempD.index)
+                        sel_day = ind[row]
+                    else:
+                        sel_day = tempD['Date'].iloc[row]
+                    detailsData = glData.loc[(glData['Particulars'].isin(sel_list_glAcc)) & (glData.Date.dt.day == int(sel_day)) & (glData.Date.dt.month == int(sel_month))]
+                    sdw = Toplevel(naw)
+                    sdw.wm_title("Net Activity Analysis by Month: Details")
+                    detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Net Activity Analysis by Month: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Net Activity Analysis by Month: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            return
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot0_2, text="Net Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: netActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
+        def debitActivity_analysis(master):
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            if sel_list_glAcc == []:
+                master.status.set("Select GL Accounts!")
+                return
+            naw = Toplevel(ubp)
+            naw.wm_title("Debit Activity Analysis by Month")
+            f1 = frame(naw, TOP)
+            f2 = frame(naw, TOP)
+            tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc)) & (glData['Amount'] >= 0)]
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            if tempData.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                i = 0
+                for col in tuple(tempData):
+                    if not i == 0:
+                        tempData[col] = tempData[col].map(master.format)
+                    i = i+1
+                tempData = tempData.sort_values(by=['Date'], ascending=True)
+                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if str(tempD.columns[col]) in ('Date') :
+                        return
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    sel_month = tempD.columns[col]
+                    if not 'Date' in tuple(tempD):
+                        ind = list(tempD.index)
+                        sel_day = ind[row]
+                    else:
+                        sel_day = tempD['Date'].iloc[row]
+                    detailsData = glData.loc[(glData['Particulars'].isin(sel_list_glAcc)) & (glData['Amount'] >= 0) & (glData.Date.dt.day == int(sel_day)) & (glData.Date.dt.month == int(sel_month))]
+                    sdw = Toplevel(naw)
+                    sdw.wm_title("Debit Activity Analysis by Month: Details")
+                    detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Debit Activity Analysis by Month: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Debit Activity Analysis by Month: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            return
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot0_2, text="Debit Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: debitActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
+        def creditActivity_analysis(master):
+            sel_list_glAcc = []
+            for i in ipt_glAcc.curselection():
+                sel_list_glAcc.append(ipt_glAcc.get(i))
+            if sel_list_glAcc == []:
+                master.status.set("Select GL Accounts!")
+                return
+            naw = Toplevel(ubp)
+            naw.wm_title("Credit Activity Analysis by Month")
+            f1 = frame(naw, TOP)
+            f2 = frame(naw, TOP)
+            tempData = glData.loc[(glData["Particulars"].isin(sel_list_glAcc)) & (glData['Amount'] < 0)]
+            tempData = pd.pivot_table(tempData, values='Amount', index=tempData.Date.dt.day, columns=tempData.Date.dt.month, aggfunc=np.sum).reset_index()
+            if tempData.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                i = 0
+                for col in tuple(tempData):
+                    if not i == 0:
+                        tempData[col] = tempData[col].map(master.format)
+                    i = i+1
+                tempData = tempData.sort_values(by=['Date'], ascending=True)
+                t = Table(f1, dataframe=tempData, width=700, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if str(tempD.columns[col]) in ('Date') :
+                        return
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    sel_month = tempD.columns[col]
+                    if not 'Date' in tuple(tempD):
+                        ind = list(tempD.index)
+                        sel_day = ind[row]
+                    else:
+                        sel_day = tempD['Date'].iloc[row]
+                    detailsData = glData.loc[(glData['Particulars'].isin(sel_list_glAcc)) & (glData['Amount'] < 0) & (glData.Date.dt.day == int(sel_day)) & (glData.Date.dt.month == int(sel_month))]
+                    sdw = Toplevel(naw)
+                    sdw.wm_title("Credit Activity Analysis by Month: Details")
+                    detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Credit Activity Analysis by Month: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Credit Activity Analysis by Month: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            return
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Details", command=lambda: showDetails(master)).pack(side=TOP, padx=10, pady=5)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(f2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command=naw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot0_2, text="Credit Activity Analysis by Month", bg="white", fg="RoyalBlue4", command=lambda: creditActivity_analysis(self)).pack(side=LEFT, padx=10, pady=5)
+        fbot1 = frame(ubp, TOP)
+        Button(fbot1, text="Done", command=ubp.destroy).pack(side=RIGHT, padx=10)
+        Button(fbot1, text="Cancel", command=ubp.destroy).pack(side=RIGHT, padx=10)
+
     def correlation_2acc(self):
         c2aw = Toplevel(self)
         c2aw.wm_title("Correlation Analysis of 2 Accounts")
@@ -1368,7 +2012,7 @@ class Application(Frame):
         Button(f3, text="Process Map", bg="white", fg="RoyalBlue4", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Preparer Map", bg="white", fg="RoyalBlue4", command=self.preparer_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f3, text="Identify and Understand Booking Patterns", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Identify and Understand Booking Patterns", bg="white", fg="RoyalBlue4", command= self.understand_booking_patterns).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Tagging Analysis - Journals", bg="white", fg="RoyalBlue4", command= self.tagging_analysis_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -1532,7 +2176,7 @@ class Application(Frame):
                     return
                 else:
                     master.activity_analysis_window(bsw, item[12:])
-        Button(fbot, text="Activity Analysis", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
+        Button(fbot, text="Activity Analysis", bg="white", fg="RoyalBlue4", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
         def table_view():
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Balance Sheet: Table View")
@@ -1664,7 +2308,7 @@ class Application(Frame):
                     return
                 else:
                     master.activity_analysis_window(bsw, item[12:])
-        Button(fbot, text="Activity Analysis", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
+        Button(fbot, text="Activity Analysis", bg="white", fg="RoyalBlue4", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
         def table_view():
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Income Statement: Table View")

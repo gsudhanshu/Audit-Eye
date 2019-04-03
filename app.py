@@ -89,11 +89,11 @@ class Application(Frame):
             self.caInputFile = caInputF
             self.cadata = pd.read_excel(caInputF, skiprows=3)
         def getGLData(self):
-            return self.gldata
+            return self.gldata.copy()
         def getTBData(self):
-            return self.tbdata
+            return self.tbdata.copy()
         def getCAData(self):
-            return self.cadata
+            return self.cadata.copy()
         def setEntryEffDates(self, min_entry_dt, max_entry_dt, min_eff_dt, max_eff_dt):
             self.min_entry_dt = min_entry_dt
             self.max_entry_dt = max_entry_dt
@@ -185,7 +185,7 @@ class Application(Frame):
         def getSourceInputF(self):
             return self.sourceInputF
         def getSourceInput(self):
-            return self.sourceInput
+            return self.sourceInput.copy()
         def setPreparerInputF(self, preparerFileName):
             if preparerFileName == '':
                 self.preparerInput = None
@@ -208,7 +208,7 @@ class Application(Frame):
         def getPreparerInputF(self):
             return self.preparerInputF
         def getPreparerInput(self):
-            return self.preparerInput
+            return self.preparerInput.copy()
         def setBUInputF(self, BUFileName):
             if BUFileName == '':
                 self.BUInput = None
@@ -231,7 +231,7 @@ class Application(Frame):
         def getBUInputF(self):
             return self.BUInputF
         def getBUInput(self):
-            return self.BUInput
+            return self.BUInput.copy()
         def setSegmentFiles(self, SG01FileName, SG02FileName, SG03FileName, SG04FileName):
             if SG01FileName == '':
                 self.SG01File = None
@@ -308,19 +308,19 @@ class Application(Frame):
         def getSG01FileName(self):
             return self.SG01FileName
         def getSG01File(self):
-            return self.SG01File
+            return self.SG01File.copy()
         def getSG02FileName(self):
             return self.SG02FileName
         def getSG02File(self):
-            return self.SG02File
+            return self.SG02File.copy()
         def getSG03FileName(self):
             return self.SG03FileName
         def getSG03File(self):
-            return self.SG03File
+            return self.SG03File.copy()
         def getSG04FileName(self):
             return self.SG04FileName
         def getSG04File(self):
-            return self.SG04File
+            return self.SG04File.copy()
         def setIPSaved(self, ip_saved):
             self.ip_saved = ip_saved
         def getIPSaved(self):

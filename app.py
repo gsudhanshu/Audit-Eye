@@ -639,6 +639,418 @@ class Application(Frame):
         Button(fbot1, text="Done", command=gmw.destroy).pack(side=RIGHT, padx=10)
         Button(fbot1, text="Cancel", command=gmw.destroy).pack(side=RIGHT, padx=10)
 
+    def analyze_sod(self):
+        sod = Toplevel(self)
+        sod.wm_title("Analyze preparers, approvers and segregation of duties")
+        caData = self.project.getCAData()
+        glData = self.project.getGLData()
+        #ftop: Top Pane
+        ftop = frame(sod, TOP)
+        Label(ftop, text="Select Account Sub-Classes for analysis:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmid = frame(sod, TOP)
+        f1 = frame(fmid, LEFT)
+        Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
+        acc_categories = caData['Account Category'].unique().tolist()
+        for s in acc_categories:
+            if str(s) != 'nan':
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        f2 = frame(fmid, LEFT)
+        Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        f3 = frame(fmid, LEFT)
+        Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_accSubclass.select_set(0, END)
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        fbot = frame(sod, TOP)
+        def gen_sod(master):
+            sel_list_accSubclass = []
+            for i in ipt_accSubclass.curselection():
+                sel_list_accSubclass.append(ipt_accSubclass.get(i))
+            if sel_list_accSubclass == []:
+                master.status.set("Select Account Sub-Classes for analysis!")
+                return
+            gsw = Toplevel(sod)
+            gsw.wm_title("SoD Account Subclass")
+            f1 = frame(gsw, TOP)
+            f2 = frame(gsw, TOP)
+            tempData = glData.merge(caData, on=['Particulars'])
+            tempData = tempData.loc[(tempData["Account Subclass"].isin(sel_list_accSubclass))]
+            tempDrData = tempData.loc[(tempData["Amount"] >= 0)]
+            tempCrData = tempData.loc[(tempData["Amount"] < 0)]
+            temp0Data = tempData.groupby(['Account Type', 'Account Subclass'])['Preparer'].nunique().reset_index().rename(columns={'Preparer':'CY Preparers'})
+            temp1Data = tempData.groupby(['Account Type', 'Account Subclass'])['JV Number'].nunique().reset_index().rename(columns={'JV Number':'CY JE Count'})
+            Data = pd.merge(temp0Data, temp1Data, on=['Account Type', 'Account Subclass'])
+            Data['CY Entries per Preparer'] = Data['CY JE Count'] / Data['CY Preparers']
+            temp2Data = Data
+            temp3Data = tempData.groupby(['Account Type', 'Account Subclass']).sum().reset_index()
+            temp3Data = temp3Data[['Account Type', 'Account Subclass', 'Amount']].rename(columns={'Amount':'CY Amount'})
+            Data = pd.merge(Data, temp3Data, on=['Account Type', 'Account Subclass'])
+            temp4Data = tempDrData.groupby(['Account Type', 'Account Subclass']).sum().reset_index()
+            temp4Data = temp4Data[['Account Type', 'Account Subclass', 'Amount']].rename(columns={'Amount':'CY Debit'})
+            Data = pd.merge(Data, temp4Data, on=['Account Type', 'Account Subclass'])
+            temp5Data = tempCrData.groupby(['Account Type', 'Account Subclass']).sum().reset_index()
+            temp5Data = temp5Data[['Account Type', 'Account Subclass', 'Amount']].rename(columns={'Amount':'CY Credit'})
+            Data = pd.merge(Data, temp5Data, on=['Account Type', 'Account Subclass'])
+            if Data.empty:
+                Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            else:
+                i = 0
+                for col in tuple(Data):
+                    if i > 1:
+                        Data[col] = Data[col].map(master.format)
+                    i = i+1
+                t = Table(f1, dataframe=Data, width=800, showtoolbar=False, showstatusbar=False)
+                t.show()
+                def charts(master):
+                    gw = Toplevel(gsw)
+                    gw.wm_title("SoD Account Subclass: Charts")
+                    Data0 = temp0Data[['Account Subclass', 'CY Preparers']]
+                    #Data0 = Data0.set_index(['Account Subclass'])
+                    Data1 = temp1Data[['Account Subclass', 'CY JE Count']]
+                    #Data1 = Data1.set_index(['Account Subclass'])
+                    Data2 = temp2Data[['Account Subclass', 'CY Entries per Preparer']]
+                    Data2 = Data2.set_index(['Account Subclass'])
+                    graphF = frame(gw, TOP)
+                    figure = plt.Figure(figsize=(5,6), dpi=100)
+                    bar = FigureCanvasTkAgg(figure, graphF)
+                    bar.get_tk_widget().pack(side=TOP, fill=BOTH)
+                    ax1 = figure.add_subplot(411)
+                    Data0.plot.bar(stacked=False, legend=True, ax=ax1)
+                    ax1.xaxis.set_tick_params(rotation=0)
+                    ax2 = figure.add_subplot(412)
+                    Data1.plot.bar(stacked=False, legend=True, ax=ax2)
+                    ax2.xaxis.set_tick_params(rotation=0)
+                    ax3 = figure.add_subplot(413)
+                    Data2.plot.bar(stacked=False, legend=True, ax=ax3)
+                    ax3.xaxis.set_tick_params(rotation=30)
+                    os.chdir('images')
+                    figure.savefig('myplot.png')
+                    os.chdir('..')
+                    fbot = frame(gw, TOP)
+                    Button(fbot, text="Export to Excel", command= gw.destroy).pack(side=TOP, padx=10, pady=5)
+                    Button(fbot, text="Done", command= gw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Charts", command= lambda: charts(master)).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="SoD Relationships", bg="white", fg="RoyalBlue4", command= lambda: master.unex_relationships(sod, gsw)).pack(side=TOP, padx=10, pady=5)
+            Button(f2, text="Done", command= gsw.destroy).pack(side=TOP, padx=10, pady=5)
+        Button(fbot, text="Generate Report", command= lambda: gen_sod(self)).pack(side=TOP, padx=10, pady=5)
+        Button(fbot, text="Done", command= sod.destroy).pack(side=TOP, padx=10, pady=5)
+
+    def unex_relationships(master, sod, gsw):
+        gsw.destroy()
+        urw = Toplevel(sod)
+        f1 = frame(urw, TOP)
+        Label(f1, text="Analyze unexpected preparer relationships:", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f2 = frame(urw, TOP)
+        f3 = frame(f2, LEFT)
+        f4 = frame(f2, LEFT)
+        def sod_relationship(master, x, y, prev):
+            if x == '' or y == '':
+                master.status.set("Set names for Primary and Secondary Accounts!")
+                return
+            if not prev is None:
+                prev.destroy()
+            srd = Toplevel(urw)
+            srd.wm_title("Analyze unexpected preparer relationships: "+x+" and "+y)
+            caData = master.project.getCAData()
+            glData = master.project.getGLData()
+            #ftop: Top Pane
+            ftop = frame(srd, TOP)
+            Label(ftop, text="Select Account Sub-Classes for '"+x+"':", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
+            #fmid: Listboxes
+            fmid = frame(srd, TOP)
+            f1 = frame(fmid, LEFT)
+            Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+            scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+            ipt_accCat.config(yscrollcommand=scroll_accCat.set)
+            acc_categories = caData['Account Category'].unique().tolist()
+            for s in acc_categories:
+                if str(s) != 'nan':
+                    ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+            ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accCat.pack(side=RIGHT, fill=Y)
+            f2 = frame(fmid, LEFT)
+            Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+            scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+            ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+            ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accClass.pack(side=RIGHT, fill=Y)
+            f3 = frame(fmid, LEFT)
+            Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+            scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+            ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+            ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accSubclass.pack(side=RIGHT, fill=Y)
+            def accCatSelectionChange(evt):
+                ipt_accClass.delete(0, END)
+                w = evt.widget
+                sel_list_accCat = []
+                selected = False
+                for i in w.curselection():
+                    selected = True
+                    sel_list_accCat.append(w.get(i))
+                if selected:
+                    tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                    acc_classes = tempData['Account Class'].unique().tolist()
+                    for s in acc_classes:
+                        ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+            ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+            def accClassSelectionChange(evt):
+                ipt_accSubclass.delete(0, END)
+                w = evt.widget
+                sel_list_accClass = []
+                selected = False
+                for i in w.curselection():
+                    selected = True
+                    sel_list_accClass.append(w.get(i))
+                if selected:
+                    tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                    acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                    for s in acc_subclasses:
+                        ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                    ipt_accSubclass.select_set(0, END)
+            ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+            #Account B
+            ftopB = frame(srd, TOP)
+            Label(ftopB, text="Select Account Sub-Classes for '"+y+"':", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
+            #fmid: Listboxes
+            fmidB = frame(srd, TOP)
+            f1B = frame(fmidB, LEFT)
+            Label(f1B, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accCatB = Listbox(f1B,selectmode='multiple', exportselection=False)
+            scroll_accCatB = Scrollbar(f1B, orient=VERTICAL, command=ipt_accCatB.yview)
+            ipt_accCatB.config(yscrollcommand=scroll_accCatB.set)
+            acc_categoriesB = caData['Account Category'].unique().tolist()
+            for s in acc_categoriesB:
+                if str(s) != 'nan':
+                    ipt_accCatB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+            ipt_accCatB.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accCatB.pack(side=RIGHT, fill=Y)
+            f2B = frame(fmidB, LEFT)
+            Label(f2B, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accClassB = Listbox(f2B,selectmode='multiple', exportselection=False)
+            scroll_accClassB = Scrollbar(f2B, orient=VERTICAL, command=ipt_accClassB.yview)
+            ipt_accClassB.config(yscrollcommand=scroll_accClassB.set)
+            ipt_accClassB.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accClassB.pack(side=RIGHT, fill=Y)
+            f3B = frame(fmidB, LEFT)
+            Label(f3B, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+            ipt_accSubclassB = Listbox(f3B,selectmode='multiple', exportselection=False)
+            scroll_accSubclassB = Scrollbar(f3B, orient=VERTICAL, command=ipt_accSubclassB.yview)
+            ipt_accSubclassB.config(yscrollcommand=scroll_accSubclassB.set)
+            ipt_accSubclassB.pack(side=LEFT, fill=X, expand=YES)
+            scroll_accSubclassB.pack(side=RIGHT, fill=Y)
+            def accCatBSelectionChange(evt):
+                ipt_accClassB.delete(0, END)
+                w = evt.widget
+                sel_list_accCatB = []
+                selected = False
+                for i in w.curselection():
+                    selected = True
+                    sel_list_accCatB.append(w.get(i))
+                if selected:
+                    tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCatB))]
+                    acc_classesB = tempData['Account Class'].unique().tolist()
+                    for s in acc_classesB:
+                        ipt_accClassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+            ipt_accCatB.bind('<<ListboxSelect>>', accCatBSelectionChange)
+            def accClassBSelectionChange(evt):
+                ipt_accSubclassB.delete(0, END)
+                w = evt.widget
+                sel_list_accClassB = []
+                selected = False
+                for i in w.curselection():
+                    selected = True
+                    sel_list_accClassB.append(w.get(i))
+                if selected:
+                    tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClassB))]
+                    acc_subclassesB = tempData['Account Subclass'].unique().tolist()
+                    for s in acc_subclassesB:
+                        ipt_accSubclassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                    ipt_accSubclassB.select_set(0, END)
+            ipt_accClassB.bind('<<ListboxSelect>>', accClassBSelectionChange)
+            fbot = frame(srd, TOP)
+            def report(master, x, y):
+                sel_list_AccA = []
+                for i in ipt_accSubclass.curselection():
+                    sel_list_AccA.append(ipt_accSubclass.get(i))
+                sel_list_AccB = []
+                for i in ipt_accSubclassB.curselection():
+                    sel_list_AccB.append(ipt_accSubclassB.get(i))
+                if sel_list_AccA == [] or sel_list_AccB == []:
+                    master.status.set("Select accounts properly!")
+                    return
+                rw = Toplevel(srd)
+                rw.wm_title("Analyze unexpected preparer relationships: "+x+" and "+y)
+                tempData = glData.merge(caData, on=['Particulars'])
+                tempAData = tempData.loc[(tempData["Account Subclass"].isin(sel_list_AccA))]
+                tempADrData = tempAData.loc[(tempAData["Amount"] >= 0)]
+                tempACrData = tempAData.loc[(tempAData["Amount"] < 0)]
+                tempBData = tempData.loc[(tempData["Account Subclass"].isin(sel_list_AccB))]
+                tempBDrData = tempBData.loc[(tempBData["Amount"] >= 0)]
+                tempBCrData = tempBData.loc[(tempBData["Amount"] < 0)]
+                usersA = set(tempAData["Preparer"].unique().tolist())
+                usersB = set(tempBData["Preparer"].unique().tolist())
+                common_users = usersA & usersB
+                Data = pd.DataFrame(dict([ ["No. of Preparers posting to both accounts in CY", [len(common_users)]],["Primary Account Net Amount in CY",[tempAData['Amount'].sum()]],["Primary Account Debit Amount in CY", [tempADrData['Amount'].sum()]],["Primary Account Credit Amount in CY", [tempACrData['Amount'].sum()]],["Secondary Account Net Amount in CY", [tempBData['Amount'].sum()]],["Secondary Account Debit Amount in CY", [tempBDrData['Amount'].sum()]],["Secondary Account Credit Amount in CY", [tempBCrData['Amount'].sum()]],["No. of Postings to Primary Account in CY", [len(tempAData['JV Number'].unique().tolist())]],["No. of Postings to Secondary Account in CY", [len(tempBData['JV Number'].unique().tolist())]] ]))
+                ft = frame(rw, TOP)
+                for col in tuple(Data):
+                    Data[col] = Data[col].map(master.format)
+                t = Table(ft, dataframe=Data, width=1000, showtoolbar=False, showstatusbar=False)
+                t.show()
+                t.setWrap()
+                fbt = frame(rw, TOP)
+                Label(fbt, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+                def showDetails(master):
+                    col = t.getSelectedColumn()
+                    row = t.getSelectedRow()
+                    tempD = t.model.df
+                    if str(tempD.iloc[row, col]) in ('NaN', 'nan', '', '0'):
+                        return
+                    jv = True
+                    if tempD.columns[col] in ("Primary Account Net Amount in CY", "No. of Postings to Primary Account in CY"):
+                        detailsData = tempAData
+                    elif tempD.columns[col] in ("Primary Account Debit Amount in CY"):
+                        detailsData = tempADrData
+                    elif tempD.columns[col] in ("Primary Account Credit Amount in CY"):
+                        detailsData = tempACrData
+                    elif tempD.columns[col] in ("Secondary Account Net Amount in CY", "No. of Postings to Secondary Account in CY"):
+                        detailsData = tempBData
+                    elif tempD.columns[col] in ("Secondary Account Debit Amount in CY"):
+                        detailsData = tempBDrData
+                    elif tempD.columns[col] in ("Secondary Account Credit Amount in CY"):
+                        detailsData = tempBCrData
+                    else:
+                        jv = False
+                        detailsData = pd.DataFrame(dict([ ["Common Preparers", list(common_users)] ]))
+                    sdw = Toplevel(rw)
+                    sdw.wm_title("Analyze unexpected preparer relationships: Details")
+                    if jv:
+                        detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                    #fd1: Top pane
+                    fd1 = frame(sdw, TOP)
+                    detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=False, showstatusbar=False)
+                    detailst.show()
+                    fd2 = frame(sdw, TOP)
+                    def showJVDetails(master):
+                        coli = detailst.getSelectedColumn()
+                        rowi = detailst.getSelectedRow()
+                        tD = detailst.model.df
+                        if not tD.columns[coli] == 'JV Number':
+                            return
+                        if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                            return
+                        sjdw = Toplevel(sdw)
+                        sjdw.wm_title("Analyze unexpected preparer relationships: JV Number Details")
+                        jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                        jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                        fj1 = frame(sjdw, TOP)
+                        pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                        pt.show()
+                        fj2 = frame(sjdw, TOP)
+                        def tag_jv(master, jvno):
+                            tjw = Toplevel(sjdw)
+                            ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                            def ok(master, jvno):
+                                if ipt_tag.get() == '':
+                                    master.status.set("Input Tag comment is mandatory!")
+                                    return
+                                master.project.addTag(jvno, "Analyze unexpected preparer relationships: "+ipt_tag.get())
+                                tjw.destroy()
+                            Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                            Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                            ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                        Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                        Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                    if jv:
+                        Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                    def export_to_excel():
+                        savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                        if savefile == '':
+                            return
+                        writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                        detailsData.to_excel(writer, sheet_name='Sheet1')
+                        writer.save()
+                    Button(fd2, text="Export to Excel", command=export_to_excel).pack(side=TOP, padx=10, pady=5)
+                    Button(fd2, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(fbt, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=10, pady=10)
+                def export_to_excel():
+                    savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                    if savefile == '':
+                        return
+                    writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                    Data.to_excel(writer, sheet_name='Sheet1')
+                    writer.save()
+                Button(fbt, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=10, pady=10)
+                Button(fbt, text="Done", command=rw.destroy).pack(side=LEFT, padx=10, pady=10)
+                Label(fbt, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES)
+            Button(fbot, text="Generate Report", command=lambda: report(master, x, y)).pack(side=TOP, padx=10, pady=10)
+            Button(fbot, text="Done", command= srd.destroy).pack(side=TOP, padx=10, pady=10)
+        Button(f3, text="Receivables and Payables", command= lambda: sod_relationship(master, "Receivables", "Payables", None)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Cash and Revenue", command= lambda: sod_relationship(master, "Cash", "Revenue", None)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f3, text="Cash and Other Income", command= lambda: sod_relationship(master, "Cash", "Other Income", None)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f4, text="Cash and Cost of Sales", command= lambda: sod_relationship(master, "Cash", "Cost of Sales", None)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        Button(f3, text="Sales and Cost of Sales", command= lambda: sod_relationship(master, "Sales", "Cost of Sales", None)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        def custom(master):
+            cw = Toplevel(urw)
+            fbot = frame(cw, BOTTOM)
+            fL = frame(cw, LEFT)
+            Label(fL, text="Primary account name:", relief=FLAT, anchor="e").pack(side=TOP, fill=BOTH, expand=YES, pady=10)
+            Label(fL, text="Secondary account name:", relief=FLAT, anchor="e").pack(side=TOP, fill=BOTH, expand=YES, pady=10)
+            fR = frame(cw, RIGHT)
+            ipt_pri = Entry(fR, relief=SUNKEN, width=30)
+            ipt_pri.pack(side=TOP, fill=BOTH, expand=YES, pady=10)
+            ipt_sec = Entry(fR, relief=SUNKEN, width=30)
+            ipt_sec.pack(side=TOP, fill=BOTH, expand=YES, pady=10)
+            Button(fbot, text="Next", command= lambda: sod_relationship(master, ipt_pri.get(), ipt_sec.get(), cw)).pack(side=TOP, padx=10, pady=10)
+        Button(f4, text="Custom...", command= lambda: custom(master)).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        f5 = frame(urw, TOP)
+        Button(f5, text="Done", command= urw.destroy).pack(side=TOP, padx=10, pady=10)
+
     def understand_booking_patterns(self):
         ubp = Toplevel(self)
         ubp.wm_title("Understand Booking Patterns")
@@ -1893,71 +2305,109 @@ class Application(Frame):
         caw.wm_title("Cut-Off Analysis")
         #f1: Top pane
         f1 = frame(caw, TOP)
-        Label(f1, text="Specify Date Range: from", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f1, text="Specify 'Entry Date' Range: ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+        Label(f1, text="From ", relief=FLAT, anchor="e").pack(side=LEFT, padx=5)
         glData = self.project.getGLData()
         self.fetchData = glData
         from_dt = glData['Date'].min().strftime('%d/%m/%Y')
         to_dt = glData['Date'].max().strftime('%d/%m/%Y')
         #from-to Date Combobox
         ipt_from_dt = DateEntry(f1, relief=SUNKEN, year=int(from_dt[6:10]), month=int(from_dt[3:5]), day=int(from_dt[:2]))
-        ipt_from_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        Label(f1, text=" to ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_from_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+        Label(f1, text="To ", relief=FLAT, anchor="e").pack(side=LEFT, padx=5)
         ipt_to_dt = DateEntry(f1, relief=SUNKEN, year=int(to_dt[6:10]), month=int(to_dt[3:5]), day=int(to_dt[:2]))
-        ipt_to_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_to_dt.pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
         f1.pack(expand=YES, fill=BOTH)
-        #f2: Mid pane
-        f2 = frame(caw, TOP)
+        #fmid: Mid pane
+        fmid = frame(caw, TOP)
         caData = self.project.getCAData()
+        fmid_1 = frame(fmid, LEFT)
+        Label(fmid_1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCat = Listbox(fmid_1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(fmid_1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
         acc_categories = caData['Account Category'].unique().tolist()
-        acc_category = []
         for s in acc_categories:
             if str(s) != 'nan':
-                acc_category.append(uni.normalize('NFKD', s).encode('ascii','ignore'))
-        ipt_accCat = ttk.Combobox(f2, values=acc_category)
-        ipt_accClass = ttk.Combobox(f2)
-        ipt_accSubclass = ttk.Combobox(f2)
-        ipt_glAcc = Listbox(f2,selectmode='multiple', exportselection=False)
-        def accCatSelected(self):
-            if not ipt_accCat.get() == '':
-                #get unique values in account class for selected category
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get())]
-                acc_class = tempData['Account Class'].unique().tolist()
-                ipt_accClass['values']=acc_class
-                caw.update()
-        def accClassSelected(self):
-            if not ipt_accClass.get() == '':
-                #get unique values in account Subclass for selected class
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())]
-                acc_subclass = tempData['Account Subclass'].unique().tolist()
-                ipt_accSubclass.configure(values=acc_subclass)
-                caw.update()
-        def accSubclassSelected(self):
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        fmid_2 = frame(fmid, LEFT)
+        Label(fmid_2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClass = Listbox(fmid_2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(fmid_2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        fmid_3 = frame(fmid, LEFT)
+        Label(fmid_3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclass = Listbox(fmid_3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(fmid_3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        fmid_4 = frame(fmid, LEFT)
+        Label(fmid_4, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAcc = Listbox(fmid_4,selectmode='multiple', exportselection=False)
+        scroll_glAcc = Scrollbar(fmid_4, orient=VERTICAL, command=ipt_glAcc.yview)
+        ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAcc.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        def accSubclassSelectionChange(evt):
             ipt_glAcc.delete(0, END)
-            if not ipt_accSubclass.get() == '':
-                #get unique values in gl account for selected subclass
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
-                glAcc = tempData['Particulars'].unique().tolist()
-                for item in glAcc:
-                    ipt_glAcc.insert(END, item)
+            w = evt.widget
+            sel_list_accSubclass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclass))]
+                particulars = tempData['Particulars'].unique().tolist()
+                for s in particulars:
+                    ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
                 ipt_glAcc.select_set(0, END)
-                caw.update()
-        ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
-        ipt_accClass.bind("<<ComboboxSelected>>", accClassSelected)
-        ipt_accSubclass.bind("<<ComboboxSelected>>", accSubclassSelected)
-        Label(f2, text="Select Accounts:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_glAcc.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        f2.pack(expand=YES, fill=BOTH)
+        ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
         #f3: Mid pane
         f3 = frame(caw, TOP)
-        Label(f3, text="Threshold Amount:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        Label(f3, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
+        Label(f3, text="Threshold Amount:", relief=FLAT).pack(side=LEFT, padx=5)
         ipt_thresholdAmt = Entry(f3, relief=SUNKEN)
-        ipt_thresholdAmt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)       
-        f3.pack(expand=YES, fill=BOTH)
+        ipt_thresholdAmt.pack(side=LEFT, padx=5)       
+        Label(f3, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
         #f4: Mid pane
         f4 = frame(caw, TOP)
+        f5 = frame(caw, TOP)
+        self.pt = Label(f5, text="", relief=FLAT)
+        self.pt.pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
         def fetch(master):
             master.fetchData = glData.loc[(glData["Date"] >= pd.Timestamp(ipt_from_dt.get_date())) & (glData["Date"] <= pd.Timestamp(ipt_to_dt.get_date()))]
             sel_list_glAcc = []
@@ -1965,30 +2415,57 @@ class Application(Frame):
                 sel_list_glAcc.append(ipt_glAcc.get(i))
             master.fetchData = master.fetchData.loc[(master.fetchData["Particulars"].isin(sel_list_glAcc))]
             master.fetchData = master.fetchData.loc[(abs(master.fetchData["Amount"]) >= int(ipt_thresholdAmt.get()))]
-            text_src.delete(1.0, END)
-            text_src.insert(END, master.fetchData) #display dataframe in text
+            master.pt.destroy()
+            master.pt = Table(f5, dataframe=master.fetchData, width=700, showtoolbar=False, showstatusbar=False)
+            master.pt.show()
+            master.details.config(state="normal")
         Button(f4, text="Generate", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
-        f4.pack(expand=YES, fill=BOTH)
-        #f5: Mid pane
-        f5 = frame(caw, TOP)
-        text_src = Text(f5, state=NORMAL, height=20, width=120)
-        src_scroll = Scrollbar(f5, command= text_src.yview)
-        text_src.configure(yscrollcommand=src_scroll.set)
-        text_src.pack(side=LEFT)
-        src_scroll.pack(side=RIGHT, fill=Y)
-        f5.pack(expand=YES, fill=BOTH)
         #f6: Bottom pane
         f6 = frame(caw, BOTTOM)
-        Button(f6, text="Done", command=caw.destroy).pack(side=RIGHT, padx=10, pady=10)
-        def export_txn(master):
+        Label(f6, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+        def showJVDetails(master):
+            coli = master.pt.getSelectedColumn()
+            rowi = master.pt.getSelectedRow()
+            tD = master.pt.model.df
+            if not tD.columns[coli] == 'JV Number':
+                return
+            if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                return
+            sjdw = Toplevel(caw)
+            sjdw.wm_title("Cut-off Analysis: JV Number Details")
+            jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+            jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+            fj1 = frame(sjdw, TOP)
+            pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+            pt.show()
+            fj2 = frame(sjdw, TOP)
+            def tag_jv(master, jvno):
+                tjw = Toplevel(sjdw)
+                ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                def ok(master, jvno):
+                    if ipt_tag.get() == '':
+                        master.status.set("Input Tag comment is mandatory!")
+                        return
+                    master.project.addTag(jvno, "Cut-off Analysis: "+ipt_tag.get())
+                    tjw.destroy()
+                Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                return
+            Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+            Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+        self.details = Button(f6, text="Details", command=lambda: showJVDetails(self), state=DISABLED)
+        self.details.pack(side=LEFT, padx=5)
+        def export_to_excel(master):
             savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
             if savefile == '':
                 return
             writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
             master.fetchData.to_excel(writer)
             writer.save()            
-        Button(f6, text="Export Transactions", command=lambda: export_txn(self)).pack(side=RIGHT, padx=10, pady=10)
-        f6.pack(expand=YES, fill=BOTH)
+        Button(f6, text="Export to Excel", command=lambda: export_to_excel(self)).pack(side=LEFT, padx=5)
+        Button(f6, text="Done", command=caw.destroy).pack(side=LEFT, padx=5)
+        Label(f6, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10)
 
     def init_dashboard(self):
         self.l1.destroy()
@@ -2022,7 +2499,7 @@ class Application(Frame):
         Label(f3, text="Process Analysis", bg="SkyBlue4", fg="white", font='Helvetica 12 bold').pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Process Map", bg="white", fg="RoyalBlue4", command=self.process_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         Button(f3, text="Preparer Map", bg="white", fg="RoyalBlue4", command=self.preparer_map_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
-        Button(f3, text="Analyze preparers, approvers and segregation of duties", command=self.destroy).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Analyze preparers, approvers and segregation of duties", bg="white", fg="RoyalBlue4", command= self.analyze_sod).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Identify and Understand Booking Patterns", bg="white", fg="RoyalBlue4", command= self.understand_booking_patterns).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Button(f3, text="Tagging Analysis - Journals", bg="white", fg="RoyalBlue4", command= self.tagging_analysis_window).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)        
         Label(f3, text=" ", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
@@ -2618,46 +3095,128 @@ class Application(Frame):
         glData = master.project.getGLData()
         #A. highlight high JE line item counts
         glData_subset = glData[["JV Number", 'Amount']]
-        countli_byJE = glData_subset.pivot_table(index=["JV Number"], aggfunc='count')
+        countli_byJE = glData_subset.pivot_table(index=["JV Number"], aggfunc='count').reset_index()
         countli_byJE = countli_byJE.rename(columns = {'Amount':'Line Item Count'})
         countli_byJE = countli_byJE.sort_values(by=['Line Item Count'], ascending=False)
         f1 = frame(ipjw, TOP)
         Label(f1, text="Count of line items in each JE in descending order").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        jeli_text = Text(f1, height=10, width=80)
-        jeli_text.insert(END, countli_byJE) #display dataframe in text
-        jeli_scroll = Scrollbar(f1, command= jeli_text.yview)
-        jeli_text.configure(yscrollcommand=jeli_scroll.set)
-        jeli_text.pack(side=LEFT)
-        jeli_scroll.pack(side=RIGHT, fill=Y)
-        f1.pack(expand=YES, fill=BOTH)
+        if not countli_byJE.empty:
+            f1_1 = frame(f1, TOP)
+            t = Table(f1_1, dataframe=countli_byJE, showtoolbar=False, showstatusbar=False)
+            t.show()
+            t.setWrap()
+            f1_2 = frame(f1, TOP)
+            Label(f1_2, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+            def showJVDetails(master):
+                coli = t.getSelectedColumn()
+                rowi = t.getSelectedRow()
+                tD = t.model.df
+                if not tD.columns[coli] == 'JV Number':
+                    return
+                if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                    return
+                sjdw = Toplevel(ipjw)
+                sjdw.wm_title("JE Validation: JV Number Details")
+                jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                fj1 = frame(sjdw, TOP)
+                pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                pt.show()
+                fj2 = frame(sjdw, TOP)
+                def tag_jv(master, jvno):
+                    tjw = Toplevel(sjdw)
+                    ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                    def ok(master, jvno):
+                        if ipt_tag.get() == '':
+                            master.status.set("Input Tag comment is mandatory!")
+                            return
+                        master.project.addTag(jvno, "JE Validation: "+ipt_tag.get())
+                        tjw.destroy()
+                    Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                    Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                    ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+            Button(f1_2, text="Details", command=lambda: showJVDetails(master)).pack(side=LEFT, padx=5)
+            def export_to_excel():
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                if savefile == '':
+                    return
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                countli_byJE.to_excel(writer)
+                writer.save()            
+            Button(f1_2, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=5)        
+            Label(f1_2, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
         #B. Unbalanced JEs
         f2 = frame(ipjw, TOP)
-        amount_by_JE = glData_subset.pivot_table(index=["JV Number"])
+        amount_by_JE = glData_subset.groupby(['JV Number']).sum()
         amount_by_JE = amount_by_JE.replace(0, np.nan)
         unbalancedJE = amount_by_JE.dropna(how='any', axis=1) 
-        unbalancedJE = amount_by_JE.replace(np.nan, 0) #to be on safe side
         Label(f2, text="Guidance: Audit team may want to analyze few JE's with high line item count \nto check for batch processing of entries.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        Label(f2, text="Unbalanced JE's: Displays the sum of amount per JE in descending order").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
-        jelist_text = Text(f2, height=10, width=80)
-        jelist_text.insert(END, unbalancedJE) #display dataframe in text
-        jelist_scroll = Scrollbar(f2, command= jelist_text.yview)
-        jelist_text.configure(yscrollcommand=jelist_scroll.set)
-        jelist_text.pack(side=LEFT)
-        jelist_scroll.pack(side=RIGHT, fill=Y)
-        f2.pack(expand=YES, fill=BOTH)
+        Label(f2, text="Unbalanced JE's: Displays the sum of amount per 'Unbalanced JE'").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        if unbalancedJE.empty:
+            Label(f2, text="No Unbalanced JE's to display").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+        else:
+            f2_1 = frame(f2, TOP)
+            t1 = Table(f2_1, dataframe=unbalancedJE, showtoolbar=False, showstatusbar=False)
+            t1.show()
+            t1.setWrap()
+            f2_2 = frame(f2, TOP)
+            Label(f2_2, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+            def showDetails(master):
+                coli = t1.getSelectedColumn()
+                rowi = t1.getSelectedRow()
+                tD = t1.model.df
+                if not tD.columns[coli] == 'JV Number':
+                    return
+                if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                    return
+                sjdw = Toplevel(ipjw)
+                sjdw.wm_title("JE Validation: JV Number Details")
+                jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                fj1 = frame(sjdw, TOP)
+                pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                pt.show()
+                fj2 = frame(sjdw, TOP)
+                def tag_jv(master, jvno):
+                    tjw = Toplevel(sjdw)
+                    ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                    def ok(master, jvno):
+                        if ipt_tag.get() == '':
+                            master.status.set("Input Tag comment is mandatory!")
+                            return
+                        master.project.addTag(jvno, "JE Validation: "+ipt_tag.get())
+                        tjw.destroy()
+                    Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                    Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                    ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+            Button(f2_2, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=5)
+            def export_toexcel():
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                if savefile == '':
+                    return
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                unbalancedJE.to_excel(writer)
+                writer.save()            
+            Button(f2_2, text="Export to Excel", command=export_toexcel).pack(side=LEFT, padx=5)        
+            Label(f2_2, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
         fmid = frame(ipjw, TOP)
         Label(fmid, text="Guidance: If the amount is not zero for any JE, the audit team needs to \nre-validate the data from the client.", relief=FLAT, bg="yellow").pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
         fmid.pack(expand=YES, fill=BOTH)
         f3 = frame(ipjw, TOP)
+        Label(f3, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=10)
         def onCancel(master, ipjw):
             ipjw.destroy()
-        Button(f3, text="Cancel", command=lambda: onCancel(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)        
+        Button(f3, text="Cancel", command=lambda: onCancel(master, ipjw)).pack(side=LEFT, padx=5, pady=10)        
         def onApprove(master, ipjw):
             master.project.saveJEvalidated()
             master.save_project_file()
             ipjw.destroy()
-        Button(f3, text="Ok", command=lambda: onApprove(master, ipjw)).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        f3.pack(expand=YES, fill=BOTH)
+        Button(f3, text="Ok", command=lambda: onApprove(master, ipjw)).pack(side=LEFT, padx=5, pady=10)
+        Label(f3, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=10)
 
     def ipt_select_sysvalues_window(self):
         if self.project is None:

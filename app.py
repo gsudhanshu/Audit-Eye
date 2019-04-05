@@ -2331,13 +2331,15 @@ class Application(Frame):
             Data1 = Data1.rename(columns = {'Amount':ipt_accB_name.get()})
             df = pd.merge(Data, Data1, on=['Date'], how="outer").reset_index()
             df = df.rename(columns = {'Date':'Month'})
+            df["Primary Account as a % of Secondary Account (in %)"] = df[ipt_accA_name.get()]*100/df[ipt_accB_name.get()]
+            dfg = df[['Month', "Primary Account as a % of Secondary Account (in %)"]]
             figure = plt.Figure(figsize=(5,4), dpi=100)
             ax = figure.add_subplot(111)
             line = FigureCanvasTkAgg(figure, graphF)
             line.get_tk_widget().pack(side=TOP, fill=BOTH)
-            Data.plot(kind='line', legend=True, ax=ax, color='red', marker='o', fontsize=10)
-            Data1.plot(kind='line', legend=True, ax=ax, color='blue', marker='o', fontsize=10)
-            ax.set_title(ipt_accA_name.get()+' Vs. '+ipt_accB_name.get())
+            dfg.plot(kind='line', legend=True, ax=ax, color='red', marker='o', fontsize=10)
+            #Data1.plot(kind='line', legend=True, ax=ax, color='blue', marker='o', fontsize=10)
+            ax.set_title(ipt_accA_name.get()+' as a % of '+ipt_accB_name.get())
             os.chdir('images')
             figure.savefig('myplot.png')
             os.chdir('..')

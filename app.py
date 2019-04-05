@@ -2139,101 +2139,173 @@ class Application(Frame):
         c2aw.wm_title("Relationship Analysis of 2 Accounts")
         caData = self.project.getCAData()
         glData = self.project.getGLData()
+        tbData = self.project.getTBData()
+        #ftop: Top Pane
+        ftop = frame(c2aw, TOP)
+        Label(ftop, text="Set name of Group 'A' Account:", relief=FLAT, anchor='e').pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accA_name = Entry(ftop, relief=SUNKEN)
+        ipt_accA_name.pack(side=LEFT, padx=10, pady=10)
+        Label(ftop, text="", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmid = frame(c2aw, TOP)
+        f1 = frame(fmid, LEFT)
+        Label(f1, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCat = Listbox(f1,selectmode='multiple', exportselection=False)
+        scroll_accCat = Scrollbar(f1, orient=VERTICAL, command=ipt_accCat.yview)
+        ipt_accCat.config(yscrollcommand=scroll_accCat.set)
         acc_categories = caData['Account Category'].unique().tolist()
-        acc_category = []
         for s in acc_categories:
             if str(s) != 'nan':
-                acc_category.append(uni.normalize('NFKD', s).encode('ascii','ignore'))
-        #f1: Top Pane
-        f1 = frame(c2aw, TOP)
-        ipt_accCat = ttk.Combobox(f1, values=acc_category)
-        ipt_accClass = ttk.Combobox(f1)
-        ipt_accSubclass = ttk.Combobox(f1)
-        ipt_glAcc = Listbox(f1,selectmode='multiple', exportselection=False)
-        def accCatSelected(self):
-            if not ipt_accCat.get() == '':
-                #get unique values in account class for selected category
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get())]
-                acc_class = tempData['Account Class'].unique().tolist()
-                ipt_accClass['values']=acc_class
-                c2aw.update()
-        def accClassSelected(self):
-            if not ipt_accClass.get() == '':
-                #get unique values in account Subclass for selected class
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())]
-                acc_subclass = tempData['Account Subclass'].unique().tolist()
-                ipt_accSubclass.configure(values=acc_subclass)
-                c2aw.update()
-        def accSubclassSelected(self):
+                ipt_accCat.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCat.pack(side=RIGHT, fill=Y)
+        f2 = frame(fmid, LEFT)
+        Label(f2, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClass = Listbox(f2,selectmode='multiple', exportselection=False)
+        scroll_accClass = Scrollbar(f2, orient=VERTICAL, command=ipt_accClass.yview)
+        ipt_accClass.config(yscrollcommand=scroll_accClass.set)
+        ipt_accClass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClass.pack(side=RIGHT, fill=Y)
+        f3 = frame(fmid, LEFT)
+        Label(f3, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclass = Listbox(f3,selectmode='multiple', exportselection=False)
+        scroll_accSubclass = Scrollbar(f3, orient=VERTICAL, command=ipt_accSubclass.yview)
+        ipt_accSubclass.config(yscrollcommand=scroll_accSubclass.set)
+        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclass.pack(side=RIGHT, fill=Y)
+        f4 = frame(fmid, LEFT)
+        Label(f4, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAcc = Listbox(f4,selectmode='multiple', exportselection=False)
+        scroll_glAcc = Scrollbar(f4, orient=VERTICAL, command=ipt_glAcc.yview)
+        ipt_glAcc.config(yscrollcommand=scroll_glAcc.set)
+        ipt_glAcc.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAcc.pack(side=RIGHT, fill=Y)
+        def accCatSelectionChange(evt):
+            ipt_accClass.delete(0, END)
+            w = evt.widget
+            sel_list_accCat = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCat.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCat))]
+                acc_classes = tempData['Account Class'].unique().tolist()
+                for s in acc_classes:
+                    ipt_accClass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCat.bind('<<ListboxSelect>>', accCatSelectionChange)
+        def accClassSelectionChange(evt):
+            ipt_accSubclass.delete(0, END)
+            w = evt.widget
+            sel_list_accClass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClass))]
+                acc_subclasses = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclasses:
+                    ipt_accSubclass.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClass.bind('<<ListboxSelect>>', accClassSelectionChange)
+        def accSubclassSelectionChange(evt):
             ipt_glAcc.delete(0, END)
-            if not ipt_accSubclass.get() == '':
-                #get unique values in gl account for selected subclass
-                tempData = caData.loc[(caData['Account Category'] == ipt_accCat.get()) & (caData['Account Class'] == ipt_accClass.get())& (caData['Account Subclass'] == ipt_accSubclass.get())]
-                glAcc = tempData['Particulars'].unique().tolist()
-                for item in glAcc:
-                    ipt_glAcc.insert(END, item)
+            w = evt.widget
+            sel_list_accSubclass = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclass.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclass))]
+                particulars = tempData['Particulars'].unique().tolist()
+                for s in particulars:
+                    ipt_glAcc.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
                 ipt_glAcc.select_set(0, END)
-                c2aw.update()
-        ipt_accCat.bind("<<ComboboxSelected>>", accCatSelected)
-        ipt_accClass.bind("<<ComboboxSelected>>", accClassSelected)
-        ipt_accSubclass.bind("<<ComboboxSelected>>", accSubclassSelected)
-        Label(f1, text="Select Group 'A' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_accCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_glAcc.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        f1.pack(expand=YES, fill=BOTH)
-        f1_1 = frame(c2aw, TOP)
-        Label(f1_1, text="Set name of Group 'A' Account:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
-        ipt_accA_name = Entry(f1_1, relief=SUNKEN)
-        ipt_accA_name.pack(side=LEFT, padx=10, pady=10)
-        f1_1.pack(expand=YES, fill=BOTH)
-        #f2: Mid Pane
-        f2 = frame(c2aw, TOP)
-        ipt_accBCat = ttk.Combobox(f2, values=acc_category)
-        ipt_accBClass = ttk.Combobox(f2)
-        ipt_accBSubclass = ttk.Combobox(f2)
-        ipt_glAccB = Listbox(f2, selectmode='multiple', exportselection=False)
-        def accBCatSelected(self):
-            if not ipt_accBCat.get() == '':
-                #get unique values in account class for selected category
-                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get())]
-                acc_class = tempData['Account Class'].unique().tolist()
-                ipt_accBClass['values']=acc_class
-                c2aw.update()
-        def accBClassSelected(self):
-            if not ipt_accBClass.get() == '':
-                #get unique values in account Subclass for selected class
-                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get()) & (caData['Account Class'] == ipt_accBClass.get())]
-                acc_subclass = tempData['Account Subclass'].unique().tolist()
-                ipt_accBSubclass.configure(values=acc_subclass)
-                c2aw.update()
-        def accBSubclassSelected(self):
-            ipt_glAccB.delete(0, END)
-            if not ipt_accBSubclass.get() == '':
-                #get unique values in gl account for selected subclass
-                tempData = caData.loc[(caData['Account Category'] == ipt_accBCat.get()) & (caData['Account Class'] == ipt_accBClass.get())& (caData['Account Subclass'] == ipt_accBSubclass.get())]
-                glAcc = tempData['Particulars'].unique().tolist()
-                for item in glAcc:
-                    ipt_glAccB.insert(END, item)
-                ipt_glAccB.select_set(0, END)
-                c2aw.update()
-        ipt_accBCat.bind("<<ComboboxSelected>>", accBCatSelected)
-        ipt_accBClass.bind("<<ComboboxSelected>>", accBClassSelected)
-        ipt_accBSubclass.bind("<<ComboboxSelected>>", accBSubclassSelected)
-        Label(f2, text="Select Group 'B' Account:", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        ipt_accBCat.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accBClass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_accBSubclass.pack(side=LEFT, fill=X, expand=YES, padx=10, pady=10)
-        ipt_glAccB.pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
-        f2.pack(expand=YES, fill=BOTH)
-        f2_2 = frame(c2aw, TOP)
-        Label(f2_2, text="Set name of Group 'B' Account:", relief=FLAT).pack(side=LEFT, padx=10, pady=10)
-        ipt_accB_name = Entry(f2_2, relief=SUNKEN)
+        ipt_accSubclass.bind('<<ListboxSelect>>', accSubclassSelectionChange)
+        #Account B
+        ftopB = frame(c2aw, TOP)
+        Label(ftopB, text="Set name of Group 'B' Account:", relief=FLAT, anchor='e').pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        ipt_accB_name = Entry(ftopB, relief=SUNKEN)
         ipt_accB_name.pack(side=LEFT, padx=10, pady=10)
-        f2_2.pack(expand=YES, fill=BOTH)
-        #f3: Mid pane
-        f3 = frame(c2aw, TOP)
+        Label(ftopB, text="", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=10, pady=10)
+        #fmid: Listboxes
+        fmidB = frame(c2aw, TOP)
+        f1B = frame(fmidB, LEFT)
+        Label(f1B, text="Account Category", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accCatB = Listbox(f1B,selectmode='multiple', exportselection=False)
+        scroll_accCatB = Scrollbar(f1B, orient=VERTICAL, command=ipt_accCatB.yview)
+        ipt_accCatB.config(yscrollcommand=scroll_accCatB.set)
+        acc_categoriesB = caData['Account Category'].unique().tolist()
+        for s in acc_categoriesB:
+            if str(s) != 'nan':
+                ipt_accCatB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accCatB.pack(side=RIGHT, fill=Y)
+        f2B = frame(fmidB, LEFT)
+        Label(f2B, text="Account Class", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accClassB = Listbox(f2B,selectmode='multiple', exportselection=False)
+        scroll_accClassB = Scrollbar(f2B, orient=VERTICAL, command=ipt_accClassB.yview)
+        ipt_accClassB.config(yscrollcommand=scroll_accClassB.set)
+        ipt_accClassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accClassB.pack(side=RIGHT, fill=Y)
+        f3B = frame(fmidB, LEFT)
+        Label(f3B, text="Account Subclass", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_accSubclassB = Listbox(f3B,selectmode='multiple', exportselection=False)
+        scroll_accSubclassB = Scrollbar(f3B, orient=VERTICAL, command=ipt_accSubclassB.yview)
+        ipt_accSubclassB.config(yscrollcommand=scroll_accSubclassB.set)
+        ipt_accSubclassB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_accSubclassB.pack(side=RIGHT, fill=Y)
+        f4B = frame(fmidB, LEFT)
+        Label(f4B, text="GL Accounts", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
+        ipt_glAccB = Listbox(f4B,selectmode='multiple', exportselection=False)
+        scroll_glAccB = Scrollbar(f4B, orient=VERTICAL, command=ipt_glAccB.yview)
+        ipt_glAccB.config(yscrollcommand=scroll_glAccB.set)
+        ipt_glAccB.pack(side=LEFT, fill=X, expand=YES)
+        scroll_glAccB.pack(side=RIGHT, fill=Y)
+        def accCatBSelectionChange(evt):
+            ipt_accClassB.delete(0, END)
+            w = evt.widget
+            sel_list_accCatB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accCatB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Category"].isin(sel_list_accCatB))]
+                acc_classesB = tempData['Account Class'].unique().tolist()
+                for s in acc_classesB:
+                    ipt_accClassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accCatB.bind('<<ListboxSelect>>', accCatBSelectionChange)
+        def accClassBSelectionChange(evt):
+            ipt_accSubclassB.delete(0, END)
+            w = evt.widget
+            sel_list_accClassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accClassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Class"].isin(sel_list_accClassB))]
+                acc_subclassesB = tempData['Account Subclass'].unique().tolist()
+                for s in acc_subclassesB:
+                    ipt_accSubclassB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+        ipt_accClassB.bind('<<ListboxSelect>>', accClassBSelectionChange)
+        def accSubclassBSelectionChange(evt):
+            ipt_glAccB.delete(0, END)
+            w = evt.widget
+            sel_list_accSubclassB = []
+            selected = False
+            for i in w.curselection():
+                selected = True
+                sel_list_accSubclassB.append(w.get(i))
+            if selected:
+                tempData = caData.loc[(caData["Account Subclass"].isin(sel_list_accSubclassB))]
+                particularsB = tempData['Particulars'].unique().tolist()
+                for s in particularsB:
+                    ipt_glAccB.insert(END, uni.normalize('NFKD', s).encode('ascii','ignore'))
+                ipt_glAccB.select_set(0, END)
+        ipt_accSubclassB.bind('<<ListboxSelect>>', accSubclassBSelectionChange)
         def fetch(master):
             sel_list_glAccA = []
             for i in ipt_glAcc.curselection():
@@ -2250,14 +2322,15 @@ class Application(Frame):
             accAData = glData.loc[(glData["Particulars"].isin(sel_list_glAccA))]
             Data = accAData[['Date', 'Amount']]
             Data = Data.groupby(Data.Date.dt.to_period("M")).sum()
-            Data['Amount'] = Data['Amount'].map(lambda x: abs(x))
+            #Data['Amount'] = Data['Amount'].map(lambda x: abs(x))
             Data = Data.rename(columns = {'Amount':ipt_accA_name.get()})
             accBData = glData.loc[(glData["Particulars"].isin(sel_list_glAccB))]
             Data1 = accBData[['Date', 'Amount']]
             Data1 = Data1.groupby(Data1.Date.dt.to_period("M")).sum()
-            Data1['Amount'] = Data1['Amount'].map(lambda x: abs(x))
+            #Data1['Amount'] = Data1['Amount'].map(lambda x: abs(x))
             Data1 = Data1.rename(columns = {'Amount':ipt_accB_name.get()})
-            df = pd.merge(Data, Data1, on=['Date'])
+            df = pd.merge(Data, Data1, on=['Date'], how="outer").reset_index()
+            df = df.rename(columns = {'Date':'Month'})
             figure = plt.Figure(figsize=(5,4), dpi=100)
             ax = figure.add_subplot(111)
             line = FigureCanvasTkAgg(figure, graphF)
@@ -2268,15 +2341,13 @@ class Application(Frame):
             os.chdir('images')
             figure.savefig('myplot.png')
             os.chdir('..')
-            graphF.pack(expand=YES, fill=BOTH)
+            for col in tuple(df):
+                if not col in ('Month'): 
+                    df[col] = df[col].map(master.format)
             tableF = frame(gw, TOP)
-            text_tbl = Text(tableF, state=NORMAL, height=10, width=100)
-            tbl_scroll = Scrollbar(tableF, command= text_tbl.yview)
-            text_tbl.configure(yscrollcommand=tbl_scroll.set)
-            text_tbl.insert(END, df)
-            text_tbl.pack(side=LEFT)
-            tbl_scroll.pack(side=RIGHT, fill=Y)
-            tableF.pack(expand=YES, fill=BOTH)
+            t = Table(tableF, dataframe=df, width=700, height=60, showtoolbar=False, showstatusbar=False)
+            t.show()
+            t.setWrap()
             buttonF = frame(gw, BOTTOM)
             def export_to_excel(df):
                 savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
@@ -2290,15 +2361,81 @@ class Application(Frame):
                 worksheet.insert_image('E2', 'myplot.png')
                 writer.save()
                 os.chdir('..')
-            Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(df)).pack(side=TOP, padx=10, pady=10)
-            buttonF.pack(expand=YES, fill=BOTH)
-        Button(f3, text="Generate Relationship Graph", command=lambda: fetch(self)).pack(side=TOP, padx=2, pady=2)
-        f3.pack(expand=YES, fill=BOTH)
-        #f4: Bottom pane
-        f4 = frame(c2aw, BOTTOM)
-        Button(f4, text="Done", command=c2aw.destroy).pack(side=RIGHT, padx=10, pady=10)
-        Button(f4, text="Cancel", command=c2aw.destroy).pack(side=RIGHT, padx=10, pady=10)
-        f4.pack(expand=YES, fill=BOTH)
+            Label(buttonF, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+            def showDetails(master):
+                col = t.getSelectedColumn()
+                row = t.getSelectedRow()
+                tempD = t.model.df
+                sel_gl_list = []
+                if tempD.columns[col] == ipt_accA_name.get():
+                    sel_gl_list = sel_list_glAccA
+                elif tempD.columns[col] == ipt_accB_name.get():
+                    sel_gl_list = sel_list_glAccB
+                else:
+                    return
+                if str(tempD.iloc[row, col]) in ('NaN', 'nan', ''):
+                    return
+                i = 0
+                for coln in tuple(tempD):
+                    if coln in ('Month'):
+                        period = str(tempD.iloc[row, i])
+                    i = i + 1
+                year = int(period[:period.find('-')])
+                month = int(period[(period.find('-')+1):])
+                sdw = Toplevel(gw)
+                sdw.wm_title("Relationship Analysis of 2 accounts: Details")
+                detailsData = glData.loc[(glData['Particulars'].isin(sel_gl_list)) & (glData.Date.dt.month == month) & (glData.Date.dt.year == year)]
+                detailsData['Amount'] = detailsData['Amount'].map(master.format)
+                #fd1: Top pane
+                fd1 = frame(sdw, TOP)
+                detailst = Table(fd1, dataframe=detailsData, width=800, showtoolbar=True, showstatusbar=True)
+                detailst.show()
+                fd1.pack(expand=YES, fill=BOTH)
+                fd2 = frame(sdw, TOP)
+                def showJVDetails(master):
+                    coli = detailst.getSelectedColumn()
+                    rowi = detailst.getSelectedRow()
+                    tD = detailst.model.df
+                    if not tD.columns[coli] == 'JV Number':
+                        return
+                    if str(tD.iloc[rowi, coli]) in ('NaN', 'nan', ''):
+                        return
+                    sjdw = Toplevel(sdw)
+                    sjdw.wm_title("Preparer Map Analysis: JV Number Details")
+                    jvdetailsData = glData.loc[(glData['JV Number'] == tD.iloc[rowi, coli])]
+                    jvdetailsData['Amount'] = jvdetailsData['Amount'].map(master.format)
+                    fj1 = frame(sjdw, TOP)
+                    pt = Table(fj1, dataframe=jvdetailsData, width=700, showtoolbar=True, showstatusbar=True)
+                    pt.show()
+                    fj1.pack(expand=YES, fill=BOTH)            
+                    fj2 = frame(sjdw, TOP)
+                    def tag_jv(master, jvno):
+                        tjw = Toplevel(sjdw)
+                        ipt_tag = Entry(tjw, relief=SUNKEN, width=40)
+                        def ok(master, jvno):
+                            if ipt_tag.get() == '':
+                                master.status.set("Input Tag comment is mandatory!")
+                                return
+                            master.project.addTag(jvno, "Process Map: "+ipt_tag.get())
+                            tjw.destroy()
+                        Button(tjw, text="Done", command=lambda:ok(master, jvno)).pack(side=BOTTOM, padx=10, pady=10)
+                        Label(tjw, text="Document rationale for JVno.("+str(jvno)+"):", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                        ipt_tag.pack(side=TOP, fill=BOTH, expand=YES, padx=10, pady=10)
+                        return
+                    Button(fj2, text="Tag JV", command=lambda: tag_jv(master, tD.iloc[rowi, coli])).pack(side=TOP, padx=10, pady=10)
+                    Button(fj2, text="Done", command=sjdw.destroy).pack(side=TOP, padx=10, pady=10)
+                Button(fd2, text="Details", command=lambda: showJVDetails(master)).pack(side=TOP, padx=10, pady=10)
+                fd3 = frame(sdw, TOP)
+                Button(fd3, text="Done", command=sdw.destroy).pack(side=TOP, padx=10, pady=10)
+            Button(buttonF, text="Details", command=lambda: showDetails(master)).pack(side=LEFT, padx=5)
+            Button(buttonF, text="Export to Excel", command=lambda: export_to_excel(df)).pack(side=LEFT, padx=5)
+            Button(buttonF, text="Done", command=gw.destroy).pack(side=LEFT, padx=5)
+            Label(buttonF, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, padx=5)
+        fbot0 = frame(c2aw, TOP)
+        Button(fbot0, text="Generate Relationship Graph", command=lambda: fetch(self)).pack(side=TOP)
+        fbot1 = frame(c2aw, TOP)
+        Button(fbot1, text="Done", command=c2aw.destroy).pack(side=RIGHT, padx=10)
+        Button(fbot1, text="Cancel", command=c2aw.destroy).pack(side=RIGHT, padx=10)
 
     def cutoff_analysis(self):
         caw = Toplevel(self)

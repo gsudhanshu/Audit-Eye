@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from pandastable import Table
 import calendar
+from urllib2 import urlopen
 
 def frame(root, side):
     w=Frame(root)
@@ -733,6 +734,7 @@ class Application(Frame):
             temp5Data = tempCrData.groupby(['Account Type', 'Account Subclass']).sum().reset_index()
             temp5Data = temp5Data[['Account Type', 'Account Subclass', 'Amount']].rename(columns={'Amount':'CY Credit'})
             Data = pd.merge(Data, temp5Data, on=['Account Type', 'Account Subclass'])
+            Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, pady=5)
             if Data.empty:
                 Label(f1, text="No Data to Analyze!", relief=FLAT).pack(side=TOP, fill=BOTH, expand=YES)
             else:
@@ -771,9 +773,10 @@ class Application(Frame):
                     fbot = frame(gw, TOP)
                     Button(fbot, text="Export to Excel", command= gw.destroy).pack(side=TOP, padx=10, pady=5)
                     Button(fbot, text="Done", command= gw.destroy).pack(side=TOP, padx=10, pady=5)
-                Button(f2, text="Charts", command= lambda: charts(master)).pack(side=TOP, padx=10, pady=5)
-            Button(f2, text="SoD Relationships", bg="white", fg="RoyalBlue4", command= lambda: master.unex_relationships(sod, gsw)).pack(side=TOP, padx=10, pady=5)
-            Button(f2, text="Done", command= gsw.destroy).pack(side=TOP, padx=10, pady=5)
+                Button(f2, text="Graphical Presentation", command= lambda: charts(master)).pack(side=LEFT, padx=5, pady=5)
+            Button(f2, text="Analyze Unexpected Preparer Relationships", bg="white", fg="RoyalBlue4", command= lambda: master.unex_relationships(sod, gsw)).pack(side=LEFT, padx=5, pady=5)
+            Button(f2, text="Done", command= gsw.destroy).pack(side=LEFT, padx=5, pady=5)
+            Label(f2, text=" ", relief=FLAT).pack(side=LEFT, fill=BOTH, expand=YES, pady=5)
         Button(fbot, text="Generate Report", command= lambda: gen_sod(self)).pack(side=TOP, padx=10, pady=5)
         Button(fbot, text="Done", command= sod.destroy).pack(side=TOP, padx=10, pady=5)
 
@@ -3177,6 +3180,33 @@ class Application(Frame):
         self.f0 = frame(self.w, TOP)
         lbl_status = Entry(self.w, textvariable=self.status, justify=LEFT, relief=RAISED)
         lbl_status.pack(side=BOTTOM, fill=BOTH, expand=YES, padx=5)
+        self.login_enabled = False
+        self.userid = ""
+
+    def login_window(self):
+        login = Toplevel(self)
+        login.wm_title("Login Window")
+        f1 = frame(login, TOP)
+        Label(f1, text="Username: ", relief=FLAT, anchor="e").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+        ipt_username = Entry(f1, relief=SUNKEN, width=20)
+        ipt_username.pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+        f2 = frame(login, TOP)
+        Label(f2, text="Password: ", relief=FLAT, anchor="e").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+        ipt_password = Entry(f2, relief=SUNKEN, width=20, show='*')
+        ipt_password.pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+        def onLogin(master):
+            url = "http://www.jporthotics.com/login.php?userid="+ipt_username.get()+"&password="+ipt_password.get()
+            url_file = urlopen(url)
+            master.status.set("Login Failed")
+            for line in url_file.readlines():
+                if line == "Active":
+                    master.login_enabled = True
+                    master.userid = ipt_username.get()
+                    master.status.set("Login successful!")
+                    login.destroy()
+                break
+        Button(login, text="Login", command=lambda: onLogin(self)).pack(side=TOP, padx=5, pady=5)
+        login.grab_set()
 
     def date_validation_window(self):
         ipw = Toplevel(self)
@@ -3811,6 +3841,9 @@ class Application(Frame):
         idw.grab_set()
 
     def create_project_window(self):
+        if not self.login_enabled:
+            self.status.set("Login first!")
+            return
         cpw = Toplevel(self)
         cpw.wm_title("Create Project")
         #f1: left pane
@@ -3852,6 +3885,7 @@ class Application(Frame):
             pf.write("Sector="+sector+"\n")
             pf.close()
             master.project = master.Project(project_name, fy_end, timing, creator, sector, os.path.abspath(project_name+".p"))
+            url_file = urlopen("http://www.jporthotics.com/load_project.php?userid="+master.userid+"&project="+project_name)
             self.winfo_toplevel().title("Audit-Eye: "+project_name)
             master.status.set("Project Created. Now select Tools -> Manage Data")
             parent.destroy()
@@ -3861,6 +3895,9 @@ class Application(Frame):
         cpw.grab_set()
 
     def load_project(self):
+        if not self.login_enabled:
+            self.status.set("Login first!")
+            return
         fname = askopenfilename(filetypes=(("Project Files", "*.p"),("All Files", "*")))
         if fname == () or fname == '': #in case of cancel or no selection
             return
@@ -3928,7 +3965,7 @@ class Application(Frame):
             elif line[:7] == "IPSaved":
                 IPSaved = line[8:-1]
         f.close()
-
+        url_file = urlopen("http://www.jporthotics.com/load_project.php?userid="+self.userid+"&project="+projectName)
         if inputFileSetFlag == 1:
             self.project = self.Project(projectName, fy_end, timing, creator, sector, fname)
             self.status.set("Loading Project File...Done. Now select Tools -> Manage Data")
@@ -3979,6 +4016,7 @@ class Application(Frame):
         CmdBtn = Menubutton(mBar, text='File', underline=0)
         CmdBtn.pack(side=LEFT, padx="2m")
         CmdBtn.menu = Menu(CmdBtn)
+        CmdBtn.menu.add_command(label="Login", command=self.login_window)
         CmdBtn.menu.add_command(label="Create Project...", underline=0, command=self.create_project_window)
         #CmdBtn.menu.entryconfig(0, state=DISABLED)
         CmdBtn.menu.add_command(label='Load/Open Project...', underline=5, command=self.load_project)

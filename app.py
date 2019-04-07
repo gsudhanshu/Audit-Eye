@@ -3197,6 +3197,7 @@ class Application(Frame):
         def onLogin(master):
             url = "http://www.jporthotics.com/login.php?userid="+ipt_username.get()+"&password="+ipt_password.get()
             url_file = urlopen(url)
+            master.login_enabled = False
             master.status.set("Login Failed")
             for line in url_file.readlines():
                 if line == "Active":

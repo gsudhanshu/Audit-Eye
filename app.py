@@ -2758,37 +2758,72 @@ class Application(Frame):
 
     def balance_sheet_window(master):
         bsw = Toplevel(master)
-        bsw.geometry('800x450')
+        bsw.geometry('900x450')
         bsw.wm_title("Analyze Balance Sheet")
         #create pivot
         tbData = master.project.getTBData()
         caData = master.project.getCAData()
         jData = tbData.merge(caData, on=['Particulars'])
         jData = jData.loc[(jData["Financial Statement Category"] == "Balance Sheet")]
-        pivotData = pd.pivot_table(jData, values='Closing Balance', index=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        pivotData = pd.pivot_table(jData, values=['Closing Balance','Opening Balance'], index=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
         #fmid: Middle pane
         fmid = frame(bsw, TOP)
         bsTree = ttk.Treeview(fmid)
         bsT_scroll = Scrollbar(fmid, command= bsTree.yview)
         bsTree.configure(yscrollcommand=bsT_scroll.set)
-        bsTree["columns"]=("A")
-        bsTree.column("A", width=200)
+        bsTree["columns"]=("A", "B", "C", "D")
+        bsTree.column("A", width=150)
         bsTree.heading("A", text="Closing Balance")
-        accType = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type'], aggfunc=np.sum).reset_index()
-        accCategory = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Type', 'Account Category'], aggfunc=np.sum).reset_index()
-        accClass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Category', 'Account Class'], aggfunc=np.sum).reset_index()
-        accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
-        particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        bsTree.column("B", width=150)
+        bsTree.heading("B", text="Opening Balance")
+        bsTree.column("C", width=150)
+        bsTree.heading("C", text="Variance")
+        bsTree.column("D", width=150)
+        bsTree.heading("D", text="Variance %")
+        accType = pd.pivot_table(pivotData, values=['Closing Balance','Opening Balance'], index=['Account Type'], aggfunc=np.sum).reset_index()
+        accCategory = pd.pivot_table(pivotData, values=['Closing Balance','Opening Balance'], index=['Account Type', 'Account Category'], aggfunc=np.sum).reset_index()
+        accClass = pd.pivot_table(pivotData, values=['Closing Balance','Opening Balance'], index=['Account Category', 'Account Class'], aggfunc=np.sum).reset_index()
+        accSubclass = pd.pivot_table(pivotData, values=['Closing Balance','Opening Balance'], index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
+        particulars = pd.pivot_table(pivotData, values=['Closing Balance','Opening Balance'], index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        aset_ob = 0
+        aset_cb = 0
+        liab_ob = 0
+        liab_cb = 0
+        df = pd.DataFrame(columns=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Closing Balance', 'Opening Balance', 'Variance', 'Variance%'])
+        i = 0
         for index, row in accType.iterrows():
-            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])), open=True)
+            df.loc[i] = [row['Account Type'], None, None, None, row['Closing Balance'], row['Opening Balance'], row['Closing Balance'] - row['Opening Balance'], (row['Closing Balance'] - row['Opening Balance'])*100/row['Opening Balance'] if not row['Opening Balance'] == 0 else np.nan]
+            i = i+1
+            bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance']), '{:,.0f}'.format(row['Opening Balance']), '{:,.0f}'.format(row['Closing Balance'] - row['Opening Balance']), '{:,.1f}%'.format((row['Closing Balance'] - row['Opening Balance'])*100/row['Opening Balance']) if not row['Opening Balance'] == 0 else np.nan), open=True)
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
-                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])), open=True)
+                df.loc[i] = [None, rowCat['Account Category'], None, None, rowCat['Closing Balance'], rowCat['Opening Balance'], rowCat['Closing Balance'] - rowCat['Opening Balance'], (rowCat['Closing Balance'] - rowCat['Opening Balance'])*100/rowCat['Opening Balance'] if not rowCat['Opening Balance'] == 0 else np.nan]
+                i = i+1
+                bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance']), '{:,.0f}'.format(rowCat['Opening Balance']), '{:,.0f}'.format(rowCat['Closing Balance'] - rowCat['Opening Balance']), '{:,.1f}%'.format((rowCat['Closing Balance'] - rowCat['Opening Balance'])*100/rowCat['Opening Balance']) if not rowCat['Opening Balance'] == 0 else np.nan), open=True)
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
-                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])), open=True)
+                    df.loc[i] = [None, None, rowClass['Account Class'], None, rowClass['Closing Balance'], rowClass['Opening Balance'], rowClass['Closing Balance'] - rowClass['Opening Balance'], (rowClass['Closing Balance'] - rowClass['Opening Balance'])*100/rowClass['Opening Balance'] if not rowClass['Opening Balance'] == 0 else np.nan]
+                    i = i+1
+                    bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance']), '{:,.0f}'.format(rowClass['Opening Balance']), '{:,.0f}'.format(rowClass['Closing Balance'] - rowClass['Opening Balance']), '{:,.1f}%'.format((rowClass['Closing Balance'] - rowClass['Opening Balance'])*100/rowClass['Opening Balance']) if not rowClass['Opening Balance'] == 0 else np.nan), open=True)
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
-                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
+                        df.loc[i] = [None, None, None, rowSubClass['Account Subclass'], rowSubClass['Closing Balance'], rowSubClass['Opening Balance'], rowSubClass['Closing Balance'] - rowSubClass['Opening Balance'], (rowSubClass['Closing Balance'] - rowSubClass['Opening Balance'])*100/rowSubClass['Opening Balance'] if not rowSubClass['Opening Balance'] == 0 else np.nan]
+                        i = i+1
+                        bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance']), '{:,.0f}'.format(rowSubClass['Opening Balance']), '{:,.0f}'.format(rowSubClass['Closing Balance'] - rowSubClass['Opening Balance']), '{:,.1f}%'.format((rowSubClass['Closing Balance'] - rowSubClass['Opening Balance'])*100/rowSubClass['Opening Balance']) if not rowSubClass['Opening Balance'] == 0 else np.nan))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
-                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
+                            bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance']), '{:,.0f}'.format(rowPart['Opening Balance']), '{:,.0f}'.format(rowPart['Closing Balance'] - rowPart['Opening Balance']), '{:,.1f}%'.format((rowPart['Closing Balance'] - rowPart['Opening Balance'])*100/rowPart['Opening Balance']) if not rowPart['Opening Balance'] == 0 else np.nan))
+            if row['Account Type'] == 'Assets':
+                aset_ob = row['Opening Balance']
+                aset_cb = row['Closing Balance']
+                df.loc[i] = ["Total of Assets", None, None, None, row['Closing Balance'], row['Opening Balance'], row['Closing Balance'] - row['Opening Balance'], (row['Closing Balance'] - row['Opening Balance'])*100/row['Opening Balance'] if not row['Opening Balance'] == 0 else np.nan]
+                i = i+1
+                bsTree.insert('', 'end', 'AccType- Total Assets', text="Total of Assets", values=('{:,.0f}'.format(row['Closing Balance']), '{:,.0f}'.format(row['Opening Balance']), '{:,.0f}'.format(row['Closing Balance'] - row['Opening Balance']), '{:,.1f}%'.format((row['Closing Balance'] - row['Opening Balance'])*100/row['Opening Balance']) if not row['Opening Balance'] == 0 else np.nan))
+            else:
+                liab_ob = liab_ob + row['Opening Balance']
+                liab_cb = liab_cb + row['Closing Balance']
+        df.loc[i] = ["Total of Liabilities", None, None, None, liab_cb, liab_ob, liab_cb - liab_ob, (liab_cb - liab_ob)*100/liab_ob if not liab_ob == 0 else np.nan]
+        i = i + 1
+        bsTree.insert('', 'end', 'AccType- Total Liabilities', text="Total of Liabilities", values=('{:,.0f}'.format(liab_cb), '{:,.0f}'.format(liab_ob), '{:,.0f}'.format(liab_cb - liab_ob), '{:,.1f}%'.format((liab_cb - liab_ob)*100/liab_ob) if not liab_ob == 0 else np.nan))
+        df.loc[i] = ["Balance Sheet check", None, None, None, aset_cb+liab_cb, aset_ob+liab_ob, None, None]
+        i = i + 1
+        bsTree.insert('', 'end', 'BS check', text="Balance Sheet check", values=('{:,.0f}'.format(aset_cb+liab_cb), '{:,.0f}'.format(aset_ob+liab_ob), 'NA', 'NA'))  
         bsTree.pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
@@ -2809,12 +2844,18 @@ class Application(Frame):
                 else:
                     master.activity_analysis_window(bsw, item[12:])
         Button(fbot, text="Activity Analysis", bg="white", fg="RoyalBlue4", command=lambda: activity_analysis(master)).pack(side=TOP, padx=10, pady=10)
-        def table_view():
+        def table_view(master):
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Balance Sheet: Table View")
-            pivott = Table(tvw, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+            for col in tuple(df):
+                if col in ('Closing Balance', 'Opening Balance', 'Variance'):
+                    df[col] = df[col].map(master.format)
+                elif col in ('Variance%'):
+                    df[col] = df[col].map(master.format_percent)
+            pivott = Table(tvw, dataframe=df, width=1000, height=21, showtoolbar=True, showstatusbar=True)
             pivott.show()
-        Button(fbot, text="Table View", command=table_view).pack(side=TOP, padx=10, pady=10)
+            #add export to excel functionality
+        Button(fbot, text="Table View", command=lambda: table_view(master)).pack(side=TOP, padx=10, pady=10)
         Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
         fbot.pack(expand=YES, fill=BOTH)
 
@@ -2959,6 +3000,16 @@ class Application(Frame):
             return '0'
         else:
             return '{:,.0f}'.format(x)
+
+    def format_percent(self, x):
+        if str(x) in ('NaN','nan', ''):
+            return '0%'
+        elif type(x) == str:
+            return x
+        elif x is None:
+            return '0%'
+        else:
+            return '{:,.1f}%'.format(x)
 
     def preparer_map_window(master):
         prmw = Toplevel(master)

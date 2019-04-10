@@ -2847,17 +2847,28 @@ class Application(Frame):
         def table_view(master):
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Balance Sheet: Table View")
+            f0 = frame(tvw, TOP)
             for col in tuple(df):
                 if col in ('Closing Balance', 'Opening Balance', 'Variance'):
                     df[col] = df[col].map(master.format)
                 elif col in ('Variance%'):
                     df[col] = df[col].map(master.format_percent)
-            pivott = Table(tvw, dataframe=df, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+            pivott = Table(f0, dataframe=df, width=1200, height=400, showtoolbar=False, showstatusbar=False)
             pivott.show()
-            #add export to excel functionality
+            f1 = frame(tvw, TOP)
+            Label(f1, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+            def export_to_excel():
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                if savefile == '':
+                    return
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                df.to_excel(writer)
+                writer.save()            
+            Button(f1, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=5)        
+            Button(f1, text="Done", command=tvw.destroy).pack(side=LEFT, padx=5, pady=5)
+            Label(f1, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
         Button(fbot, text="Table View", command=lambda: table_view(master)).pack(side=TOP, padx=10, pady=10)
         Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
-        fbot.pack(expand=YES, fill=BOTH)
 
     def activity_analysis_window(master, w, p):
         aaw = Toplevel(w)
@@ -2952,16 +2963,40 @@ class Application(Frame):
         accClass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Category', 'Account Class'], aggfunc=np.sum).reset_index()
         accSubclass = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Class', 'Account Subclass'], aggfunc=np.sum).reset_index()
         particulars = pd.pivot_table(pivotData, values='Closing Balance', index=['Account Subclass', 'Particulars'], aggfunc=np.sum).reset_index()
+        exp = 0
+        inc = 0
+        df = pd.DataFrame(columns=['Account Type', 'Account Category', 'Account Class', 'Account Subclass', 'Amount'])
+        i = 0
         for index, row in accType.iterrows():
+            df.loc[i] = [row['Account Type'], None, None, None, row['Closing Balance']]
+            i = i+1
             bsTree.insert('', 'end', 'AccType-'+row['Account Type'], text=row['Account Type'], values=('{:,.0f}'.format(row['Closing Balance'])), open=True)
             for indexCat, rowCat in accCategory.loc[(accCategory['Account Type'] == row['Account Type'])].iterrows():
+                df.loc[i] = [None, rowCat['Account Category'], None, None, rowCat['Closing Balance']]
+                i = i+1
                 bsTree.insert('AccType-'+row['Account Type'], 'end', 'AccCategory-'+rowCat['Account Category'], text=rowCat['Account Category'], values=('{:,.0f}'.format(rowCat['Closing Balance'])), open=True)
                 for indexClass, rowClass in accClass.loc[(accClass['Account Category'] == rowCat['Account Category'])].iterrows():
+                    df.loc[i] = [None, None, rowClass['Account Class'], None, rowClass['Closing Balance']]
+                    i = i+1
                     bsTree.insert('AccCategory-'+rowCat['Account Category'], 'end', 'AccClass-'+rowClass['Account Class'], text=rowClass['Account Class'], values=('{:,.0f}'.format(rowClass['Closing Balance'])), open=True)
                     for indexSubClass, rowSubClass in accSubclass.loc[(accSubclass['Account Class'] == rowClass['Account Class'])].iterrows():
+                        df.loc[i] = [None, None, None, rowSubClass['Account Subclass'], rowSubClass['Closing Balance']]
+                        i = i+1
                         bsTree.insert('AccClass-'+rowClass['Account Class'], 'end', 'AccSubclass-'+rowSubClass['Account Subclass'], text=rowSubClass['Account Subclass'], values=('{:,.0f}'.format(rowSubClass['Closing Balance'])))
                         for indexPart, rowPart in particulars.loc[(particulars['Account Subclass'] == rowSubClass['Account Subclass'])].iterrows():
                             bsTree.insert('AccSubclass-'+rowSubClass['Account Subclass'], 'end', 'Particulars-'+rowPart['Particulars'], text=rowPart['Particulars'], values=('{:,.0f}'.format(rowPart['Closing Balance'])))
+            if row['Account Type'] == 'Expenses':
+                exp = row['Closing Balance']
+                df.loc[i] = ["Total of Expenses", None, None, None, row['Closing Balance']]
+                i = i+1
+                bsTree.insert('', 'end', 'AccType- Total Expenses', text='Total of Expenses', values=('{:,.0f}'.format(row['Closing Balance'])))
+            elif row['Account Type'] == 'Revenue':
+                inc = row['Closing Balance']
+                df.loc[i] = ["Total of Income", None, None, None, row['Closing Balance']]
+                i = i+1
+                bsTree.insert('', 'end', 'AccType- Total Income', text='Total of Income', values=('{:,.0f}'.format(row['Closing Balance'])))
+        df.loc[i] = ["(Profit) or Loss", None, None, None, (inc + exp)]
+        bsTree.insert('', 'end', 'AccType- Profit', text='(Profit) or Loss', values=('{:,.0f}'.format(inc + exp)))
         bsTree.pack(side=LEFT, fill=BOTH, expand=YES, pady=10)
         bsT_scroll.pack(side=RIGHT, fill=Y)
         fmid.pack(expand=YES, fill=BOTH)
@@ -2985,8 +3020,24 @@ class Application(Frame):
         def table_view():
             tvw = Toplevel(bsw)
             tvw.wm_title("Analyze Income Statement: Table View")
-            pivott = Table(tvw, dataframe=pivotData, width=1000, height=21, showtoolbar=True, showstatusbar=True)
+            f0 = frame(tvw, TOP)
+            for col in tuple(df):
+                if col in ('Amount'):
+                    df[col] = df[col].map(master.format)
+            pivott = Table(f0, dataframe=df, width=1050, height=400, showtoolbar=False, showstatusbar=False)
             pivott.show()
+            f1 = frame(tvw, TOP)
+            Label(f1, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
+            def export_to_excel():
+                savefile = asksaveasfilename(filetypes=(("Xlsx files","*.xlsx"),("All files","*")))
+                if savefile == '':
+                    return
+                writer = pd.ExcelWriter(savefile, engine='xlsxwriter')
+                df.to_excel(writer)
+                writer.save()            
+            Button(f1, text="Export to Excel", command=export_to_excel).pack(side=LEFT, padx=5)        
+            Button(f1, text="Done", command=tvw.destroy).pack(side=LEFT, padx=5, pady=5)
+            Label(f1, text=" ").pack(side=LEFT, fill=BOTH, expand=YES, padx=5, pady=5)
         Button(fbot, text="Table View", command=table_view).pack(side=TOP, padx=10, pady=10)
         Button(fbot, text="Done", command=bsw.destroy).pack(side=TOP, padx=10, pady=10)
         fbot.pack(expand=YES, fill=BOTH)

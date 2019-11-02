@@ -3,8 +3,11 @@
 GNU Public License              
 
 Installation:
+
+A. Ubuntu
+
 Dependencies:
-Ubuntu:Python 2.7.16
+Python 2.7.16
 pandastable
 pandas==0.23.4
 matplotlib==2.0.2

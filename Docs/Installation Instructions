@@ -1,0 +1,11 @@
+https://github.com/gsudhanshu/Audit-Eye.git
+
+1. Install Python 2.7.16 and set paths for c:\Python27;c:\Python27\Scripts;
+2. Install pip on windows
+3. download zip from Audit-Eye repository to your c: drive
+4. pip install pandas==0.23.4
+5. pip install pillow
+6. pip install tkcalendar
+7. pip install matplotlib==2.0.2
+8. pip install seaborn
+9. pip install pandastable

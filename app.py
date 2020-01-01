@@ -14,6 +14,8 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from pandastable import Table
 import calendar
 from urllib2 import urlopen
+import logging
+from datetime import datetime
 
 def frame(root, side):
     w=Frame(root)
@@ -3255,6 +3257,9 @@ class Application(Frame):
         pd.set_option('display.max_rows', None)
         pd.set_option('display.expand_frame_repr', False)
         pd.options.display.float_format = '{:,.0f}'.format
+        log_filename = datetime.now().strftime('%d-%m-%Y-%H:%M:%S')+'.log'
+        logging.basicConfig(filename=log_filename, level=logging.INFO)
+        logging.info('Application started')
         Frame.__init__(self)
         self.project=None
         self.status = StringVar()

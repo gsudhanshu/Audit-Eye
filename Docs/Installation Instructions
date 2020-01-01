@@ -9,3 +9,4 @@ https://github.com/gsudhanshu/Audit-Eye.git
 7. pip install matplotlib==2.0.2
 8. pip install seaborn
 9. pip install pandastable
+10. pip install logging

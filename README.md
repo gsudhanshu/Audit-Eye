@@ -21,4 +21,6 @@ Installation:
 6. pip install matplotlib==2.0.2
 #7. pip install seaborn
 8. pip install pandastable
+9. sudo pip install logging
+
 
